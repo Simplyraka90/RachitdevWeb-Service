@@ -150,7 +150,7 @@ export default function Navbar() {
                   size={14}
                   className="text-[#B77842] animate-spin"
                 />
-                <span>RACHIT DEV STUDIO</span>
+                <span>RACHIT DEV Web Services</span>
               </motion.div>
 
               {/* Animated Logo Container */}
