@@ -1,7 +1,7 @@
 
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-
+<meta name="google-site-verification" content="qtnEffN9GqG3y0ZEwBul4xutbA1g_FLV7gmfgv3JX5o" />
 export const metadata: Metadata = {
   title: "Rachit Dev | Web Development Services",
   description:
