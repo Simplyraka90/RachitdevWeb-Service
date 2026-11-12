@@ -1,0 +1,6 @@
+@import "tailwindcss";
+:root { --background:#FFFAF5; --foreground:#111111; }
+html { scroll-behavior:smooth; scroll-padding-top:96px; }
+body { margin:0; background:var(--background); color:var(--foreground); }
+::selection { background:#F5C99F; color:#111; }
+@media (prefers-reduced-motion: reduce) { html {scroll-behavior:auto;} }
