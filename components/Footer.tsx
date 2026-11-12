@@ -153,7 +153,7 @@ export default function Footer() {
 
               <div>
                 <strong className="block text-xl font-extrabold tracking-tight">
-                  Rachit Dev
+                  Rachix Studio
                 </strong>
                 <span className="text-xs font-medium tracking-[0.16em] text-neutral-400">
                   WEB SERVICE
@@ -317,7 +317,7 @@ export default function Footer() {
           <p className="text-xs leading-6 text-neutral-400 sm:text-sm">
             © {currentYear}{" "}
             <span className="font-semibold text-white">
-              Rachit Dev Web Service.
+              Rachix Studio Web Service.
             </span>{" "}
             All Rights Reserved.
           </p>

@@ -208,7 +208,7 @@ export default function Navbar() {
               >
                 Welcome to{" "}
                 <span className="bg-linear-to-r from-[#F5C99F] via-[#B77842] to-[#F5C99F] bg-clip-text text-transparent">
-                  Rachit Dev
+                  Rachix Studio
                 </span>
               </motion.h1>
 
@@ -278,7 +278,7 @@ export default function Navbar() {
 
             <div className="flex flex-col">
               <strong className="text-base sm:text-lg font-extrabold leading-tight text-neutral-900 tracking-tight">
-                Rachit Dev
+                Rachix Studio
               </strong>
               <small className="text-[11px] sm:text-xs font-semibold text-neutral-500">
                 Web Service
