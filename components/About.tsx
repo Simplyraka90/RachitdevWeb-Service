@@ -49,7 +49,7 @@ const localReplies: {
   {
     keywords: ["hi", "hii", "hiii", "hy", "hello", "hlo", "hey"],
     reply:
-      "Hello! 👋 Welcome to Rachit Dev Web Service. How can I help you today?",
+      "Hello! 👋 Welcome to Rachix Studio. How can I help you today?",
   },
   {
     keywords: ["good morning", "gm"],
@@ -61,7 +61,7 @@ const localReplies: {
   },
   {
     keywords: ["good evening"],
-    reply: "Good evening! 🌆 Welcome to Rachit Dev!",
+    reply: "Good evening! 🌆 Welcome to Rachix Studio!",
   },
   {
     keywords: ["how are you", "how r u", "how are u"],
@@ -71,7 +71,7 @@ const localReplies: {
   {
     keywords: ["who are you", "your name"],
     reply:
-      "I'm Rachit Dev Assistant 🤖, here to help with website development services.",
+      "I'm Rachix Studio AI Assistant 🤖, here to help with professional website design and development services.",
   },
   {
     keywords: ["thank you", "thanks", "thx"],
@@ -107,7 +107,7 @@ function normalizeText(text: string) {
     .replace(/\s+/g, " ");
 }
 
-// Detect clear requests to contact Rachit.
+// Detect clear requests to contact Rachix Studio.
 // Avoid triggering on ordinary service questions.
 function isWhatsAppIntent(message: string): boolean {
   const q = normalizeText(message);
@@ -115,11 +115,11 @@ function isWhatsAppIntent(message: string): boolean {
   const patterns = [
     /^(contact|whatsapp|connect me|contact me|call me)$/,
     /\blet'?s (connect|talk|meet|discuss)\b/,
-    /\b(connect me|connect with you|contact rachit)\b/,
+    /\b(connect me|connect with you|contact rachit|contact rachix studio)\b/,
     /\b(book|schedule|arrange|set up)\s+(a\s+)?(call|meeting|consultation)\b/,
     /\b(how can (we|i)|can we)\s+(connect|meet|talk|contact)\b/,
     /\b(i want to|i would like to|i'd like to)\s+(connect|meet|talk|contact|hire)\b/,
-    /\b(hire you|hire rachit|want to hire you)\b/,
+    /\b(hire you|hire rachit|hire rachix studio|want to hire you)\b/,
     /\b(send me|share)\s+(your\s+)?(whatsapp|contact number)\b/,
     /\bmujhe\s+(aapse\s+)?(baat|contact|connect)\s+karni\s+hai\b/,
     /\baapse\s+baat\s+karni\s+hai\b/,
@@ -133,60 +133,59 @@ function isWhatsAppIntent(message: string): boolean {
 function getSmartLocalReply(message: string): string {
   const q = normalizeText(message);
 
-  // Check pricing before project types.
   if (
     /price|pricing|cost|budget|charge|kitna|paisa|how much|rate/.test(q)
   ) {
-    return "Website pricing depends on the design, number of pages, features and integrations. 💰 Share your project requirements and budget, and Rachit can discuss a suitable quote on WhatsApp.";
+    return "Website pricing depends on the design, number of pages, features and integrations. 💰 Share your project requirements and budget, and our team can discuss a suitable quote on WhatsApp.";
   }
 
   if (/portfolio|personal website|resume website/.test(q)) {
-    return "Absolutely! 🚀 Rachit Dev Web Service creates modern, responsive portfolio websites with project showcases, skills, animations and contact forms. Do you need a personal or professional portfolio?";
+    return "Absolutely! 🚀 Rachix Studio creates modern, responsive portfolio websites with project showcases, skills, animations and contact forms. Do you need a personal or professional portfolio?";
   }
 
   if (
     /ecommerce|e-commerce|online store|shopping website/.test(q)
   ) {
-    return "Yes! 🛍️ We can discuss an e-commerce website with product listings, categories, shopping cart and checkout features. What kind of products will you sell?";
+    return "Yes! 🛍️ Rachix Studio can discuss an e-commerce website with product listings, categories, shopping cart and checkout features. What kind of products will you sell?";
   }
 
-  if (/restaurant|cafe|food delivery|hotel/.test(q)) {
-    return "Yes! 🍽️ We develop restaurant and hospitality websites with menus, galleries, booking inquiry forms and responsive layouts. What features do you need?";
+  if (/restaurant|cafe|café|food delivery|hotel|resort/.test(q)) {
+    return "Yes! 🍽️ Rachix Studio develops restaurant, café and hospitality websites with menus, galleries, booking inquiry forms and responsive layouts. What features do you need?";
   }
 
   if (/business|company|startup|corporate/.test(q)) {
-    return "We create professional business websites with modern UI, service pages, contact forms and mobile-friendly layouts. What type of business do you run?";
+    return "Rachix Studio creates professional business websites with modern UI, service pages, contact forms and mobile-friendly layouts. What type of business do you run?";
   }
 
   if (/seo|google ranking|search engine/.test(q)) {
-    return "We can discuss SEO-friendly website structure, metadata, responsive design and performance optimization. Google rankings cannot be guaranteed. Are you building a new website or improving an existing one?";
+    return "Rachix Studio can discuss SEO-friendly website structure, metadata, responsive design and performance optimization. Google rankings cannot be guaranteed. Are you building a new website or improving an existing one?";
   }
 
   if (
     /react|nextjs|next.js|typescript|tailwind|technology|tech stack/.test(q)
   ) {
-    return "Our frontend tech stack includes React.js, Next.js, TypeScript, JavaScript and Tailwind CSS. 🚀 These technologies help create fast, responsive and scalable web interfaces.";
+    return "Rachix Studio uses React.js, Next.js, TypeScript, JavaScript and Tailwind CSS to build fast, responsive and scalable web interfaces. 🚀";
   }
 
   if (
     /timeline|delivery|days|weeks|how long|deadline/.test(q)
   ) {
-    return "Project delivery time depends on the number of pages, features and complexity. ⏱️ Share your requirements so Rachit can discuss a realistic timeline.";
+    return "Project delivery time depends on the number of pages, features and complexity. ⏱️ Share your requirements so our team can discuss a realistic timeline.";
   }
 
   if (
-    /who is rachit|about rachit|about you|your services/.test(q)
+    /who is rachit|about rachit|about you|your services|about rachix/.test(q)
   ) {
-    return "Rachit Rathore is a Frontend Developer and UI/UX Designer specializing in React, Next.js and responsive websites. Rachit Dev Web Service helps clients create professional digital experiences.";
+    return "Rachix Studio is a professional web design and development service founded by Rachit Rathore, a Frontend Developer and UI/UX Designer. We help clients create professional digital experiences.";
   }
 
   if (
     /website|web development|web app|web application|site/.test(q)
   ) {
-    return "Yes! 💻 Rachit Dev Web Service develops responsive websites and modern web applications using React, Next.js, TypeScript and Tailwind CSS. What type of website are you planning?";
+    return "Yes! 💻 Rachix Studio develops responsive websites and modern web applications using React, Next.js, TypeScript and Tailwind CSS. What type of website are you planning?";
   }
 
-  return "Thanks for your message! 😊 Rachit Dev Web Service specializes in website development and modern UI/UX. Could you share a little more about your project?";
+  return "Thanks for your message! 😊 Rachix Studio specializes in professional website development and modern UI/UX. Could you share a little more about your project?";
 }
 
 export default function About() {
@@ -200,7 +199,7 @@ export default function About() {
     {
       sender: "bot",
       text:
-        "Hey there! 👋 Welcome to Rachit Dev Web Service. How can I help you?",
+        "Hey there! 👋 Welcome to Rachix Studio. How can I help you?",
     },
   ]);
 
@@ -209,9 +208,7 @@ export default function About() {
   const messagesRef = useRef<ChatMessage[]>(messages);
   const abortRef = useRef<AbortController | null>(null);
 
-  // IMPORTANT:
-  // Replace with your actual WhatsApp number.
-  // Include country code, without + or spaces.
+  // WhatsApp number with country code.
   const whatsappNumber = "918576971890";
 
   const whatsappUrl = (message: string) =>
@@ -220,7 +217,7 @@ export default function About() {
     )}`;
 
   const generalWhatsAppUrl = whatsappUrl(
-    "Hello Rachit! I visited Rachit Dev Web Service and would like to discuss a web development project."
+    "Hello Rachix Studio! I visited your website and would like to discuss a web development project."
   );
 
   useEffect(() => {
@@ -346,7 +343,7 @@ export default function About() {
       text: query,
     });
 
-    // DIRECT WHATSAPP REDIRECT
+    // Direct WhatsApp redirect.
     if (isWhatsAppIntent(query)) {
       setShowWebsiteOptions(false);
 
@@ -357,12 +354,11 @@ export default function About() {
       });
 
       const message =
-        `Hello Rachit! 👋\n` +
-        `I visited Rachit Dev Web Service.\n\n` +
-        `I would like to connect with you.\n\n` +
+        `Hello Rachix Studio! 👋\n` +
+        `I visited your website.\n\n` +
+        `I would like to connect with your team.\n\n` +
         `My message: ${query}`;
 
-      // Called synchronously from the user's send action.
       openWhatsApp(message);
 
       pendingRef.current = false;
@@ -417,7 +413,7 @@ export default function About() {
     setShowWebsiteOptions(false);
 
     openWhatsApp(
-      `Hello Rachit! I want to build a ${type} website. Let's discuss the requirements.`
+      `Hello Rachix Studio! I want to build a ${type} website. Let's discuss the requirements.`
     );
   };
 
@@ -467,7 +463,7 @@ export default function About() {
               type="button"
               onClick={() => setIsChatOpen((prev) => !prev)}
               aria-expanded={isChatOpen}
-              aria-controls="rachit-chat-panel"
+              aria-controls="rachix-chat-panel"
               className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2 text-xs font-semibold text-[#F5C99F] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#292929]"
             >
               <Bot size={16} />
@@ -512,7 +508,7 @@ export default function About() {
           <AnimatePresence mode="wait">
             {isChatOpen ? (
               <motion.div
-                id="rachit-chat-panel"
+                id="rachix-chat-panel"
                 key="chat"
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -529,7 +525,7 @@ export default function About() {
 
                     <div className="min-w-0">
                       <h3 className="truncate text-xs font-extrabold sm:text-sm">
-                        Rachit Dev Assistant
+                        Rachix Studio AI Assistant
                       </h3>
 
                       <p className="flex items-center gap-1.5 text-[10px] text-neutral-700">
