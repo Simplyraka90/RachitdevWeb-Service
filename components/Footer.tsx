@@ -1,5 +1,7 @@
+
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
 import {
   Github,
@@ -23,19 +25,19 @@ const whatsappMessage = encodeURIComponent(
 );
 
 const quickLinks = [
-  { name: "Home", href: "#home" },
-  { name: "Services", href: "#services" },
-  { name: "Projects", href: "#projects" },
-  { name: "Tech Stack", href: "#tech-stack" },
-  { name: "About", href: "#about" },
-  { name: "Contact", href: "#contact" },
+  { name: "Home", href: "/#home" },
+  { name: "Services", href: "/#services" },
+  { name: "Projects", href: "/#projects" },
+  { name: "Tech Stack", href: "/#tech-stack" },
+  { name: "About", href: "/#about" },
+  { name: "Contact", href: "/#contact" },
 ];
 
 const services = [
-  { name: "Website Development", href: "#services" },
-  { name: "React / Next.js Apps", href: "#services" },
-  { name: "UI/UX Design", href: "#services" },
-  { name: "E-Commerce Websites", href: "#services" },
+  { name: "Website Development", href: "/#services" },
+  { name: "React / Next.js Apps", href: "/#services" },
+  { name: "UI/UX Design", href: "/#services" },
+  { name: "E-Commerce Websites", href: "/#services" },
 ];
 
 const socials = [
@@ -60,29 +62,34 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   const scrollToTop = () => {
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
     window.scrollTo({
       top: 0,
-      behavior: "smooth",
+      behavior: reduceMotion ? "auto" : "smooth",
     });
   };
 
   return (
-    <footer className="relative overflow-hidden bg-[#111111] text-white">
-      {/* Background Glow (GPU Optimized) */}
+    <footer className="relative w-full min-w-0 overflow-hidden bg-[#111111] text-white">
+      {/* LIGHTWEIGHT BACKGROUND GLOW */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-32 -top-40 h-80 w-80 rounded-full bg-[#F5C99F]/10 blur-3xl transform-gpu"
+        className="pointer-events-none absolute -right-32 -top-40 h-80 w-80 rounded-full bg-[#F5C99F]/5"
       />
 
       {/* TOP CTA SECTION */}
       <div className="border-b border-white/10 px-4 py-12 sm:px-6 md:py-16 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
-          <div className="max-w-2xl">
+          <div className="min-w-0 max-w-2xl">
+            {/* AVAILABILITY BADGE */}
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#F5C99F]/20 bg-[#F5C99F]/10 px-4 py-2">
               <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-50" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-400" />
               </span>
+
               <span className="text-xs font-semibold text-[#F5C99F]">
                 Available for New Projects
               </span>
@@ -96,28 +103,31 @@ export default function Footer() {
             </h2>
 
             <p className="mt-4 max-w-lg text-sm leading-relaxed text-neutral-400 sm:text-base">
-              From ideas to fully functional websites, I help businesses build modern, fast, responsive and user-friendly digital experiences.
+              From ideas to fully functional websites, I help
+              businesses build modern, fast, responsive and
+              user-friendly digital experiences.
             </p>
           </div>
 
-          {/* CTA Buttons */}
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row lg:flex-col xl:flex-row">
-            <a
-              href="#contact"
-              className="group inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#F5C99F] px-6 py-4 text-sm font-bold text-black transition-all duration-200 hover:bg-[#F8D8B8] touch-manipulation shadow-sm"
+          {/* CTA BUTTONS */}
+          <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:flex-row lg:flex-col xl:flex-row">
+            <Link
+              href="/#contact"
+              className="group inline-flex min-h-12 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-xl bg-[#F5C99F] px-6 py-4 text-sm font-bold text-black shadow-sm transition-colors duration-200 hover:bg-[#F8D8B8]"
             >
               <span>Start Your Project</span>
+
               <ArrowUpRight
                 size={18}
-                className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
               />
-            </a>
+            </Link>
 
             <a
               href={`https://wa.me/${PHONE}?text=${whatsappMessage}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-4 text-sm font-bold text-white transition-all duration-200 hover:border-[#F5C99F] hover:text-[#F5C99F] touch-manipulation"
+              className="inline-flex min-h-12 cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-4 text-sm font-bold text-white transition-colors duration-200 hover:border-[#F5C99F] hover:text-[#F5C99F]"
             >
               <MessageCircle size={19} />
               <span>WhatsApp Us</span>
@@ -129,36 +139,39 @@ export default function Footer() {
       {/* MAIN FOOTER */}
       <div className="px-4 pb-12 pt-12 sm:px-6 md:pt-16 lg:px-8">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
-
           {/* BRAND SECTION */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <a
-              href="#home"
-              className="inline-flex items-center gap-3"
+          <div className="min-w-0 sm:col-span-2 lg:col-span-1">
+            <Link
+              href="/#home"
+              className="inline-flex max-w-full items-center gap-3"
               aria-label="Rachit Dev Web Service Home"
             >
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FFFAF5] p-1.5 shadow-2xs">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FFFAF5] p-1.5 shadow-sm">
                 <Image
                   src="/weblog.png"
                   alt="Rachit Dev Web Service Logo"
                   width={52}
                   height={52}
+                  sizes="56px"
                   className="h-full w-full object-contain"
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <strong className="block text-xl font-extrabold tracking-tight">
                   Rachix Studio
                 </strong>
+
                 <span className="text-xs font-medium tracking-[0.16em] text-neutral-400">
                   WEB SERVICE
                 </span>
               </div>
-            </a>
+            </Link>
 
             <p className="mt-5 max-w-xs text-sm leading-relaxed text-neutral-400">
-              Crafting modern websites and digital experiences with clean design, powerful technology and a focus on performance.
+              Crafting modern websites and digital experiences
+              with clean design, powerful technology and a focus
+              on performance.
             </p>
 
             {/* SOCIAL ICONS */}
@@ -174,7 +187,7 @@ export default function Footer() {
                     rel="noopener noreferrer"
                     aria-label={social.name}
                     title={social.name}
-                    className="group flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/5 text-neutral-300 transition-all duration-200 hover:border-[#F5C99F] hover:bg-[#F5C99F] hover:text-black touch-manipulation"
+                    className="group flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-xl border border-white/10 bg-white/5 text-neutral-300 transition-colors duration-200 hover:border-[#F5C99F] hover:bg-[#F5C99F] hover:text-black"
                   >
                     <Icon
                       size={18}
@@ -187,71 +200,77 @@ export default function Footer() {
           </div>
 
           {/* QUICK LINKS */}
-          <div>
+          <div className="min-w-0">
             <h3 className="text-base font-bold text-white">
               Quick Links
             </h3>
+
             <div className="mt-3 h-0.5 w-9 rounded-full bg-[#F5C99F]" />
 
             <ul className="mt-5 space-y-3">
               {quickLinks.map((link) => (
                 <li key={link.name}>
-                  <a
+                  <Link
                     href={link.href}
                     className="group inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors duration-200 hover:text-[#F5C99F]"
                   >
                     <span className="h-1 w-1 rounded-full bg-[#F5C99F] opacity-0 transition-opacity group-hover:opacity-100" />
                     <span>{link.name}</span>
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
           {/* SERVICES */}
-          <div>
+          <div className="min-w-0">
             <h3 className="text-base font-bold text-white">
               Our Services
             </h3>
+
             <div className="mt-3 h-0.5 w-9 rounded-full bg-[#F5C99F]" />
 
             <ul className="mt-5 space-y-3">
               {services.map((service) => (
                 <li key={service.name}>
-                  <a
+                  <Link
                     href={service.href}
                     className="group inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors duration-200 hover:text-[#F5C99F]"
                   >
                     <ArrowUpRight
                       size={14}
-                      className="text-[#F5C99F] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                      className="text-[#F5C99F] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                     />
+
                     <span>{service.name}</span>
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
           {/* CONTACT INFORMATION */}
-          <div>
+          <div className="min-w-0">
             <h3 className="text-base font-bold text-white">
               Get In Touch
             </h3>
+
             <div className="mt-3 h-0.5 w-9 rounded-full bg-[#F5C99F]" />
 
             <p className="mt-5 text-sm leading-relaxed text-neutral-400">
-              Have a question or need a website? Feel free to reach out anytime.
+              Have a question or need a website? Feel free to
+              reach out anytime.
             </p>
 
             {/* EMAIL */}
             <a
               href={`mailto:${EMAIL}`}
-              className="mt-4 flex items-start gap-3 text-sm text-neutral-300 transition-colors hover:text-[#F5C99F]"
+              className="mt-4 flex min-w-0 items-start gap-3 text-sm text-neutral-300 transition-colors hover:text-[#F5C99F]"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-[#F5C99F]">
                 <Mail size={17} />
               </span>
+
               <span className="min-w-0 break-all pt-2.5">
                 {EMAIL}
               </span>
@@ -265,6 +284,7 @@ export default function Footer() {
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-[#F5C99F]">
                 <Phone size={17} />
               </span>
+
               <span>+91 85769 71890</span>
             </a>
 
@@ -278,6 +298,7 @@ export default function Footer() {
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-[#F5C99F]">
                 <MessageCircle size={17} />
               </span>
+
               <span className="inline-flex items-center gap-1.5">
                 <span>Chat on WhatsApp</span>
                 <ExternalLink size={13} />
@@ -289,10 +310,10 @@ export default function Footer() {
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-[#F5C99F]">
                 <MapPin size={17} />
               </span>
+
               <span>Noida, Uttar Pradesh, India</span>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -308,24 +329,27 @@ export default function Footer() {
           </p>
 
           <p className="flex flex-wrap items-center justify-center gap-1.5 text-xs text-neutral-400 sm:text-sm">
-            <span>Designed & Developed with</span>
+            <span>Designed &amp; Developed with</span>
+
             <Heart
               size={15}
               className="fill-[#F5C99F] text-[#F5C99F]"
             />
-            <span>using Next.js & Tailwind CSS</span>
+
+            <span>using Next.js &amp; Tailwind CSS</span>
           </p>
 
+          {/* BACK TO TOP */}
           <button
             type="button"
             onClick={scrollToTop}
             aria-label="Back to top"
             title="Back to top"
-            className="group flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-[#F5C99F]/30 bg-[#F5C99F]/10 text-[#F5C99F] transition-all duration-200 hover:bg-[#F5C99F] hover:text-black touch-manipulation shadow-2xs"
+            className="group flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-xl border border-[#F5C99F]/30 bg-[#F5C99F]/10 text-[#F5C99F] shadow-sm transition-colors duration-200 hover:bg-[#F5C99F] hover:text-black"
           >
             <ArrowUp
               size={18}
-              className="transition-transform group-hover:-translate-y-0.5"
+              className="transition-transform duration-200 group-hover:-translate-y-0.5"
             />
           </button>
         </div>

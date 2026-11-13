@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
 import {
   ArrowUpRight,
   ChevronDown,
@@ -21,6 +22,8 @@ type Project = {
   gradient: string;
   accent: string;
 };
+
+const PHONE = "918576971890";
 
 const projects: Project[] = [
   {
@@ -97,38 +100,45 @@ const projects: Project[] = [
   },
 ];
 
-function ProjectPreview({ project }: { project: Project }) {
+function ProjectPreview({
+  project,
+}: {
+  project: Project;
+}) {
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <div
-      className={`relative aspect-[16/10] overflow-hidden rounded-[20px] bg-gradient-to-br ${project.gradient}`}
+      className={`relative aspect-[16/10] min-w-0 overflow-hidden rounded-[20px] bg-gradient-to-br ${project.gradient}`}
     >
-      {/* Decorative background glows */}
-      <div className="pointer-events-none absolute -left-12 top-1/4 h-48 w-48 rounded-full bg-white/20 blur-2xl" />
-      <div className="pointer-events-none absolute -right-10 bottom-0 h-44 w-44 rounded-full bg-white/20 blur-2xl" />
+      {/* LIGHTWEIGHT DECORATIVE BACKGROUND */}
+      <div className="pointer-events-none absolute -left-12 top-1/4 h-48 w-48 rounded-full bg-white/10" />
 
-      {/* Browser window preview frame */}
-      <div className="absolute inset-x-5 bottom-0 top-7 overflow-hidden rounded-t-xl border border-white/30 bg-white/95 shadow-[0_20px_60px_rgba(0,0,0,0.18)] transition-transform duration-300 group-hover:-translate-y-1.5 sm:inset-x-7 sm:top-9">
+      <div className="pointer-events-none absolute -right-10 bottom-0 h-44 w-44 rounded-full bg-white/10" />
+
+      {/* BROWSER PREVIEW FRAME */}
+      <div className="absolute inset-x-5 bottom-0 top-7 overflow-hidden rounded-t-xl border border-white/30 bg-white/95 shadow-[0_20px_60px_rgba(0,0,0,0.18)] transition-transform duration-200 motion-safe:group-hover:-translate-y-1 sm:inset-x-7 sm:top-9">
+        {/* BROWSER HEADER */}
         <div className="flex h-8 items-center gap-1.5 border-b border-black/10 bg-[#F7F7F7] px-3">
-          <span className="h-2 w-2 rounded-full bg-[#FF6B6B]" />
-          <span className="h-2 w-2 rounded-full bg-[#FFC75F]" />
-          <span className="h-2 w-2 rounded-full bg-[#5FCB80]" />
+          <span className="h-2 w-2 shrink-0 rounded-full bg-[#FF6B6B]" />
+          <span className="h-2 w-2 shrink-0 rounded-full bg-[#FFC75F]" />
+          <span className="h-2 w-2 shrink-0 rounded-full bg-[#5FCB80]" />
 
           <div className="mx-auto max-w-[55%] truncate rounded-md bg-white px-3 py-1 text-[9px] text-neutral-500">
             {project.name.toLowerCase().replaceAll(" ", "-")}
           </div>
         </div>
 
+        {/* WEBSITE IMAGE */}
         {!imageFailed ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={project.image}
             alt={`${project.name} website preview`}
+            fill
+            sizes="(max-width: 767px) 90vw, (max-width: 1279px) 45vw, 30vw"
             loading="lazy"
-            decoding="async"
             onError={() => setImageFailed(true)}
-            className="h-[calc(100%-32px)] w-full object-cover object-top"
+            className="!top-8 !h-[calc(100%-32px)] object-cover object-top"
           />
         ) : (
           <div
@@ -152,31 +162,29 @@ function ProjectPreview({ project }: { project: Project }) {
         )}
       </div>
 
-      {/* Preview corner icon */}
-      <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#171717] shadow-2xs transition-transform duration-300 group-hover:rotate-45">
+      {/* PREVIEW CORNER ICON */}
+      <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#171717] shadow-sm transition-transform duration-200 motion-safe:group-hover:rotate-45">
         <ArrowUpRight size={17} />
       </div>
     </div>
   );
 }
 
-function ProjectCard({ project }: { project: Project }) {
+function ProjectCard({
+  project,
+}: {
+  project: Project;
+}) {
   const message = encodeURIComponent(
     `Hi Rachit, I want a website similar to ${project.name}. Please share the details.`
   );
 
   return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="group flex h-full flex-col rounded-[28px] border border-[#EBD8C7] bg-[#FFF8F1] p-3.5 shadow-[0_8px_30px_rgba(79,47,23,0.025)] transition-[border-color,box-shadow] duration-300 hover:border-[#E7B68C] hover:shadow-[0_18px_50px_rgba(79,47,23,0.08)] sm:p-4 transform-gpu"
-    >
+    <article className="group flex h-full min-w-0 flex-col rounded-[28px] border border-[#EBD8C7] bg-[#FFF8F1] p-3.5 shadow-[0_8px_30px_rgba(79,47,23,0.025)] transition-[border-color,box-shadow] duration-200 hover:border-[#E7B68C] hover:shadow-[0_18px_50px_rgba(79,47,23,0.08)] sm:p-4">
       <ProjectPreview project={project} />
 
-      <div className="flex flex-1 flex-col px-1 pb-1 pt-5 sm:px-2">
+      {/* CARD CONTENT */}
+      <div className="flex min-w-0 flex-1 flex-col px-1 pb-1 pt-5 sm:px-2">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.17em] text-[#A47C5C]">
             WORK / {String(project.id).padStart(2, "0")}
@@ -191,10 +199,11 @@ function ProjectCard({ project }: { project: Project }) {
           {project.name}
         </h3>
 
-        <p className="mt-2.5 text-xs sm:text-sm leading-relaxed text-[#66615D]">
+        <p className="mt-2.5 text-xs leading-relaxed text-[#66615D] sm:text-sm">
           {project.description}
         </p>
 
+        {/* TECH STACK */}
         <div className="mt-4 flex flex-wrap gap-1.5">
           {project.tech.map((tech) => (
             <span
@@ -206,13 +215,14 @@ function ProjectCard({ project }: { project: Project }) {
           ))}
         </div>
 
-        <div className="mt-auto grid grid-cols-1 xs:grid-cols-2 gap-2 pt-6">
+        {/* ACTION BUTTONS */}
+        <div className="mt-auto grid grid-cols-1 gap-2 pt-6 min-[400px]:grid-cols-2">
           {project.url ? (
             <a
               href={project.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#171717] px-3 text-center text-xs font-bold text-white transition-all duration-200 hover:bg-[#35302D] touch-manipulation sm:text-sm"
+              className="flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-xl bg-[#171717] px-3 text-center text-xs font-bold text-white transition-colors duration-200 hover:bg-[#35302D] sm:text-sm"
             >
               Live Preview
               <ExternalLink size={14} />
@@ -224,45 +234,47 @@ function ProjectCard({ project }: { project: Project }) {
           )}
 
           <a
-            href={`https://wa.me/918576971890?text=${message}`}
+            href={`https://wa.me/${PHONE}?text=${message}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[#171717] px-2 text-center text-xs font-bold text-[#171717] transition-all duration-200 hover:bg-[#F5C99F] touch-manipulation sm:text-sm"
+            className="flex min-h-11 touch-manipulation items-center justify-center gap-1.5 rounded-xl border border-[#171717] px-2 text-center text-xs font-bold text-[#171717] transition-colors duration-200 hover:bg-[#F5C99F] sm:text-sm"
           >
             <span>Similar Site</span>
             <ArrowUpRight size={14} />
           </a>
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 }
 
 export default function Projects() {
   const [showAll, setShowAll] = useState(false);
 
-  const visibleProjects = showAll ? projects : projects.slice(0, 3);
+  const visibleProjects = showAll
+    ? projects
+    : projects.slice(0, 3);
 
   return (
     <section
       id="projects"
-      className="relative overflow-hidden bg-[#FFFBF7] pt-12 pb-20 sm:pt-16 sm:pb-24 lg:pt-20 lg:pb-28"
+      className="relative w-full min-w-0 scroll-mt-20 overflow-hidden bg-[#FFFBF7] pb-20 pt-12 sm:pb-24 sm:pt-16 lg:pb-28 lg:pt-20"
     >
-      {/* BACKGROUND DECORATIVE GLOWS (GPU Optimized) */}
-      <div className="pointer-events-none absolute -left-40 top-20 h-80 w-80 rounded-full bg-[#F5C99F]/10 blur-3xl transform-gpu" />
-      <div className="pointer-events-none absolute -right-40 bottom-10 h-80 w-80 rounded-full bg-[#F5C99F]/10 blur-3xl transform-gpu" />
+      {/* LIGHTWEIGHT BACKGROUND DECORATIONS */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-40 top-20 h-80 w-80 rounded-full bg-[#F5C99F]/5"
+      />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-40 bottom-10 h-80 w-80 rounded-full bg-[#F5C99F]/5"
+      />
+
+      <div className="relative mx-auto w-full max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
         {/* SECTION HEADER */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="mx-auto mb-12 max-w-3xl text-center sm:mb-14"
-        >
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#F5C99F] px-4 py-1.5 text-xs font-bold text-[#171717] shadow-2xs">
+        <div className="mx-auto mb-12 max-w-3xl text-center sm:mb-14">
+          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#F5C99F] px-4 py-1.5 text-xs font-bold text-[#171717] shadow-sm">
             <Sparkles size={14} />
             OUR WORK
           </span>
@@ -271,35 +283,34 @@ export default function Projects() {
             Our{" "}
             <span className="relative inline-block">
               Work
-              <span className="absolute -bottom-1.5 left-0 h-2 w-full rounded-full bg-[#F5C99F]/70 -z-10" />
+              <span className="absolute -bottom-1.5 -z-10 left-0 h-2 w-full rounded-full bg-[#F5C99F]/70" />
             </span>
           </h2>
 
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#69635F] sm:text-base">
-            Explore the websites we&apos;ve built for different businesses, combining creative design, modern technology and seamless user experiences.
+            Explore the websites we&apos;ve built for
+            different businesses, combining creative design,
+            modern technology and seamless user experiences.
           </p>
-        </motion.div>
+        </div>
 
         {/* PROJECTS GRID */}
-        <motion.div
-          layout
-          className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3 transform-gpu"
-        >
-          <AnimatePresence mode="popLayout">
-            {visibleProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {visibleProjects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+            />
+          ))}
+        </div>
 
         {/* VIEW MORE / SHOW LESS BUTTON */}
         <div className="mt-12 flex justify-center">
-          <motion.button
+          <button
             type="button"
             onClick={() => setShowAll((prev) => !prev)}
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.98 }}
-            className="group inline-flex min-h-12 cursor-pointer items-center justify-center gap-2.5 rounded-full border border-[#171717] bg-[#171717] px-7 py-3 text-xs sm:text-sm font-bold text-white shadow-md transition-colors duration-200 hover:bg-[#F5C99F] hover:text-[#171717] touch-manipulation"
+            aria-expanded={showAll}
+            className="group inline-flex min-h-12 touch-manipulation cursor-pointer items-center justify-center gap-2.5 rounded-full border border-[#171717] bg-[#171717] px-7 py-3 text-xs font-bold text-white shadow-md transition-colors duration-200 hover:bg-[#F5C99F] hover:text-[#171717] sm:text-sm"
           >
             {showAll ? (
               <>
@@ -312,9 +323,8 @@ export default function Projects() {
                 <ChevronDown size={17} />
               </>
             )}
-          </motion.button>
+          </button>
         </div>
-
       </div>
     </section>
   );

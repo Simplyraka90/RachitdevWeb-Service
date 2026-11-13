@@ -24,93 +24,124 @@ export default function Navbar() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [progress, setProgress] = useState(0);
   const [activeTab, setActiveTab] = useState("Home");
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   const navigationTimer = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
 
-  // Welcome screen without synchronous setState in effect
+  // Detect reduced-motion preference
   useEffect(() => {
-    if (window.location.pathname !== "/") return;
+    const media = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    );
 
-    let alreadySeen = false;
+    const update = () => {
+      setReduceMotion(media.matches);
+    };
 
-    try {
-      alreadySeen =
-        sessionStorage.getItem("rachix-welcome-seen") === "1";
-    } catch {
-      // Safari private mode may restrict storage
+    update();
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", update);
+
+      return () => {
+        media.removeEventListener("change", update);
+      };
     }
 
-    if (alreadySeen) return;
-
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
-    if (reducedMotion) return;
-
-    let frame = 0;
-    let closeTimer: ReturnType<typeof setTimeout> | undefined;
-    let startTime = 0;
-
-    // Schedule the first state update asynchronously
-    frame = requestAnimationFrame((time) => {
-      setShowWelcome(true);
-
-      try {
-        sessionStorage.setItem("rachix-welcome-seen", "1");
-      } catch {
-        // Storage unavailable
-      }
-
-      startTime = time;
-
-      const updateProgress = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-
-        const next = Math.min(
-          100,
-          Math.round(
-            (elapsed / WELCOME_DURATION) * 100
-          )
-        );
-
-        setProgress(next);
-
-        if (next < 100) {
-          frame = requestAnimationFrame(updateProgress);
-        }
-      };
-
-      frame = requestAnimationFrame(updateProgress);
-
-      closeTimer = setTimeout(() => {
-        setProgress(100);
-        setShowWelcome(false);
-      }, WELCOME_DURATION + 150);
-    });
+    media.addListener(update);
 
     return () => {
-      cancelAnimationFrame(frame);
-
-      if (closeTimer) {
-        clearTimeout(closeTimer);
-      }
+      media.removeListener(update);
     };
   }, []);
 
-  // Active link from URL
+  // Welcome screen: once per tab session
+  useEffect(() => {
+    if (window.location.pathname !== "/") return;
+
+    try {
+      if (
+        sessionStorage.getItem("rachix-welcome-seen") === "1"
+      ) {
+        return;
+      }
+
+      sessionStorage.setItem("rachix-welcome-seen", "1");
+    } catch {
+      // Continue if Safari storage is unavailable
+    }
+
+    if (
+      window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches
+    ) {
+      return;
+    }
+
+    const startWelcome = () => {
+      requestAnimationFrame(() => {
+        setShowWelcome(true);
+      });
+    };
+
+    startWelcome();
+
+    let frame = 0;
+    const startTime = performance.now();
+
+    const updateProgress = (time: number) => {
+      const elapsed = time - startTime;
+
+      const value = Math.min(
+        100,
+        Math.round(
+          (elapsed / WELCOME_DURATION) * 100
+        )
+      );
+
+      setProgress(value);
+
+      if (value < 100) {
+        frame = requestAnimationFrame(updateProgress);
+      }
+    };
+
+    frame = requestAnimationFrame(updateProgress);
+
+    const closeTimer = setTimeout(() => {
+      setProgress(100);
+      setShowWelcome(false);
+    }, WELCOME_DURATION + 150);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(closeTimer);
+    };
+  }, []);
+
+  // Sync active navigation with URL
   useEffect(() => {
     const updateActive = () => {
       const hash = window.location.hash;
+
+      if (!hash) {
+        setActiveTab("Home");
+        return;
+      }
 
       const current = links.find(
         (link) => link.href === `/${hash}`
       );
 
-      setActiveTab(current?.name || "Home");
+      if (current) {
+        setActiveTab(current.name);
+      }
     };
+
+    updateActive();
 
     window.addEventListener("hashchange", updateActive);
     window.addEventListener("popstate", updateActive);
@@ -121,7 +152,7 @@ export default function Navbar() {
     };
   }, []);
 
-  // Cleanup pending navigation
+  // Cleanup navigation timer
   useEffect(() => {
     return () => {
       if (navigationTimer.current) {
@@ -130,75 +161,72 @@ export default function Navbar() {
     };
   }, []);
 
-  // Close menu on Escape
+  // Close mobile menu with Escape
   useEffect(() => {
     if (!open) return;
 
-    const handleEscape = (event: KeyboardEvent) => {
+    const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
       }
     };
 
-    window.addEventListener("keydown", handleEscape);
+    window.addEventListener("keydown", handleKey);
 
     return () => {
-      window.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("keydown", handleKey);
     };
   }, [open]);
 
-  // Close dropdown when switching to desktop
+  // Close mobile menu when desktop breakpoint is reached
   useEffect(() => {
     const media = window.matchMedia(
       "(min-width: 1280px)"
     );
 
-    const closeOnDesktop = () => {
-      if (media.matches) {
-        setOpen(false);
-      }
+    const handleResize = () => {
+      if (media.matches) setOpen(false);
     };
 
     if (typeof media.addEventListener === "function") {
-      media.addEventListener("change", closeOnDesktop);
+      media.addEventListener("change", handleResize);
 
       return () => {
         media.removeEventListener(
           "change",
-          closeOnDesktop
+          handleResize
         );
       };
     }
 
-    media.addListener(closeOnDesktop);
+    media.addListener(handleResize);
 
     return () => {
-      media.removeListener(closeOnDesktop);
+      media.removeListener(handleResize);
     };
   }, []);
 
-  // Smooth section navigation
+  // Smooth and reliable navigation
   const handleNavClick = (
     event: MouseEvent<HTMLAnchorElement>,
     href: string,
     name: string
   ) => {
     const id = href.split("#")[1];
-    const menuWasOpen = open;
+    const wasOpen = open;
 
     setOpen(false);
     setActiveTab(name);
 
     if (!id) return;
 
-    // Let Next.js handle navigation from other pages
+    // Let Next.js Link navigate from other routes
     if (window.location.pathname !== "/") {
       return;
     }
 
     const target = document.getElementById(id);
 
-    // Allow native hash navigation when target is absent
     if (!target) return;
 
     event.preventDefault();
@@ -207,12 +235,7 @@ export default function Navbar() {
       clearTimeout(navigationTimer.current);
     }
 
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
-    const delay =
-      menuWasOpen && !reducedMotion ? 260 : 0;
+    const delay = wasOpen && !reduceMotion ? 260 : 0;
 
     navigationTimer.current = setTimeout(() => {
       const section = document.getElementById(id);
@@ -231,7 +254,7 @@ export default function Navbar() {
 
       window.scrollTo({
         top: Math.max(0, top),
-        behavior: reducedMotion ? "auto" : "smooth",
+        behavior: reduceMotion ? "auto" : "smooth",
       });
 
       window.history.replaceState(
@@ -248,7 +271,7 @@ export default function Navbar() {
       <AnimatePresence>
         {showWelcome && (
           <motion.div
-            key="welcome-screen"
+            key="welcome"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{
@@ -257,11 +280,11 @@ export default function Navbar() {
             }}
             style={{ zIndex: 9999 }}
             className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-[#0A0A0D] px-6 py-10 text-white select-none"
-            aria-label="Welcome to Rachix Studio"
           >
             {/* Background glow */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               <div className="absolute -left-20 top-1/4 h-64 w-64 rounded-full bg-[#B77842]/20 blur-3xl sm:h-96 sm:w-96" />
+
               <div className="absolute -right-20 bottom-1/4 h-64 w-64 rounded-full bg-[#F5C99F]/15 blur-3xl sm:h-96 sm:w-96" />
             </div>
 
@@ -277,6 +300,7 @@ export default function Navbar() {
                   size={14}
                   className="text-[#B77842]"
                 />
+
                 <span>RACHIT DEV Web Services</span>
               </motion.div>
 
@@ -290,12 +314,16 @@ export default function Navbar() {
                 }}
                 className="relative mb-6 flex items-center justify-center"
               >
-                {/* Rotating gold ring */}
+                {/* Gold ring */}
                 <motion.svg
-                  animate={{ rotate: 360 }}
+                  animate={
+                    reduceMotion
+                      ? { rotate: 0 }
+                      : { rotate: 360 }
+                  }
                   transition={{
                     duration: 18,
-                    repeat: Infinity,
+                    repeat: reduceMotion ? 0 : Infinity,
                     ease: "linear",
                   }}
                   className="absolute h-40 w-40 text-[#B77842]/80 sm:h-48 sm:w-48"
@@ -326,7 +354,7 @@ export default function Navbar() {
                 </div>
               </motion.div>
 
-              {/* Welcome heading */}
+              {/* Heading */}
               <motion.h1
                 initial={{ y: 15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -369,6 +397,7 @@ export default function Navbar() {
                   <span className="text-[#F5C99F]">
                     LOADING
                   </span>
+
                   <span className="text-[#F5C99F]">
                     {progress}%
                   </span>
@@ -390,7 +419,7 @@ export default function Navbar() {
 
       {/* NAVBAR */}
       <header className="sticky top-0 z-50 w-full px-3 pt-4 sm:px-6 lg:px-8">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-[#E8DCCF] bg-[#FFFBF7]/95 px-4 py-3 shadow-sm sm:px-7 xl:backdrop-blur-xl">
+        <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-[#E8DCCF] bg-[#FFFBF7]/95 px-5 py-3 shadow-sm sm:px-7 xl:backdrop-blur-xl">
           {/* Brand */}
           <Link
             href="/#home"
@@ -414,6 +443,7 @@ export default function Navbar() {
               <strong className="whitespace-nowrap text-base font-extrabold leading-tight tracking-tight text-neutral-900 sm:text-lg">
                 Rachix Studio
               </strong>
+
               <small className="text-[11px] font-semibold text-neutral-500 sm:text-xs">
                 Web Service
               </small>
@@ -477,6 +507,7 @@ export default function Navbar() {
                 size={16}
                 className="text-[#F5C99F]"
               />
+
               <span>Book a Call</span>
             </Link>
           </div>
@@ -515,7 +546,7 @@ export default function Navbar() {
                 y: -10,
               }}
               transition={{
-                duration: 0.25,
+                duration: reduceMotion ? 0 : 0.25,
                 ease: "easeInOut",
               }}
               className="mx-auto mt-2 max-w-7xl overflow-hidden rounded-3xl border border-[#E8DCCF] bg-[#FFFBF7] shadow-xl xl:hidden"
@@ -559,6 +590,7 @@ export default function Navbar() {
                       size={16}
                       className="text-[#F5C99F]"
                     />
+
                     <span>Book a Call</span>
                   </Link>
                 </div>
