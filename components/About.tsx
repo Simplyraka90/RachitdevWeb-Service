@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -21,14 +20,12 @@ type ChatMessage = {
   text: string;
 };
 
-
 const highlights = [
   "B.Tech Graduate — Computer Science & Design",
   "Frontend Developer | React.js & Next.js",
   "7 Months of Professional Experience",
   "30+ Projects Successfully Completed",
 ];
-
 
 const quickPrompts = [
   "I need a website",
@@ -110,8 +107,6 @@ function normalizeText(text: string) {
     .replace(/\s+/g, " ");
 }
 
-// Detect clear requests to contact Rachix Studio.
-// Avoid triggering on ordinary service questions.
 function isWhatsAppIntent(message: string): boolean {
   const q = normalizeText(message);
 
@@ -195,14 +190,12 @@ export default function About() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [inputVal, setInputVal] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [showWebsiteOptions, setShowWebsiteOptions] =
-    useState(false);
+  const [showWebsiteOptions, setShowWebsiteOptions] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       sender: "bot",
-      text:
-        "Hey there! 👋 Welcome to Rachix Studio. How can I help you?",
+      text: "Hey there! 👋 Welcome to Rachix Studio. How can I help you?",
     },
   ]);
 
@@ -211,13 +204,10 @@ export default function About() {
   const messagesRef = useRef<ChatMessage[]>(messages);
   const abortRef = useRef<AbortController | null>(null);
 
-  // WhatsApp number with country code.
   const whatsappNumber = "918576971890";
 
   const whatsappUrl = (message: string) =>
-    `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-      message
-    )}`;
+    `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
   const generalWhatsAppUrl = whatsappUrl(
     "Hello Rachix Studio! I visited your website and would like to discuss a web development project."
@@ -229,8 +219,7 @@ export default function About() {
 
   useEffect(() => {
     if (chatRef.current) {
-      chatRef.current.scrollTop =
-        chatRef.current.scrollHeight;
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [messages, isTyping, showWebsiteOptions, isChatOpen]);
 
@@ -264,9 +253,7 @@ export default function About() {
     );
 
     if (localMatch) {
-      setShowWebsiteOptions(
-        localMatch.showOptions ?? false
-      );
+      setShowWebsiteOptions(localMatch.showOptions ?? false);
       return localMatch.reply;
     }
 
@@ -297,12 +284,6 @@ export default function About() {
       } | null = await response.json().catch(() => null);
 
       if (!response.ok) {
-        console.warn("AI API failed:", {
-          status: response.status,
-          code: data?.code,
-          error: data?.error,
-        });
-
         return fallbackReply;
       }
 
@@ -322,7 +303,6 @@ export default function About() {
         return "";
       }
 
-      console.warn("AI connection error:", error);
       return fallbackReply;
     } finally {
       if (abortRef.current === controller) {
@@ -346,14 +326,12 @@ export default function About() {
       text: query,
     });
 
-    // Direct WhatsApp redirect.
     if (isWhatsAppIntent(query)) {
       setShowWebsiteOptions(false);
 
       addMessages({
         sender: "bot",
-        text:
-          "Of course! 😊 Let's connect on WhatsApp to discuss your project or schedule a meeting.",
+        text: "Of course! 😊 Let's connect on WhatsApp to discuss your project or schedule a meeting.",
       });
 
       const message =
@@ -380,9 +358,7 @@ export default function About() {
           text: reply,
         });
       }
-    } catch (error) {
-      console.error("Chat error:", error);
-
+    } catch {
       addMessages({
         sender: "bot",
         text: getSmartLocalReply(query),
@@ -408,8 +384,7 @@ export default function About() {
       },
       {
         sender: "bot",
-        text:
-          `Great choice! 🚀 Let's discuss your ${type} project directly on WhatsApp.`,
+        text: `Great choice! 🚀 Let's discuss your ${type} project directly on WhatsApp.`,
       }
     );
 
@@ -429,19 +404,12 @@ export default function About() {
         },
         {
           sender: "bot",
-          text:
-            "Let's connect on WhatsApp! 📱 You can share your project requirements there.",
+          text: "Let's connect on WhatsApp! 📱 You can share your project requirements there.",
         }
       );
 
       setShowWebsiteOptions(false);
-
-      window.open(
-        generalWhatsAppUrl,
-        "_blank",
-        "noopener,noreferrer"
-      );
-
+      window.open(generalWhatsAppUrl, "_blank", "noopener,noreferrer");
       return;
     }
 
@@ -457,7 +425,7 @@ export default function About() {
         {/* ABOUT CONTENT */}
         <div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-[#F5C99F] px-4 py-2 text-xs font-bold">
+            <span className="inline-flex items-center gap-2 rounded-full bg-[#F5C99F] px-4 py-2 text-xs font-bold shadow-2xs">
               <Sparkles size={14} />
               About Me
             </span>
@@ -467,7 +435,7 @@ export default function About() {
               onClick={() => setIsChatOpen((prev) => !prev)}
               aria-expanded={isChatOpen}
               aria-controls="rachix-chat-panel"
-              className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2 text-xs font-semibold text-[#F5C99F] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#292929]"
+              className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2 text-xs font-semibold text-[#F5C99F] transition-all duration-200 hover:bg-[#292929] touch-manipulation cursor-pointer shadow-sm"
             >
               <Bot size={16} />
               {isChatOpen ? "Close Chat" : "Ask AI"}
@@ -478,25 +446,17 @@ export default function About() {
             Hi, I&apos;m Rachit Rathore 👋
           </h2>
 
-          <p className="mt-5 max-w-xl text-sm leading-7 text-neutral-600 sm:text-base sm:leading-8">
-            A Frontend Developer and UI/UX Designer who
-            loves building modern, scalable, and
-            user-friendly web experiences. I focus on
-            clean UI, performance, and real-world solutions
-            that help businesses grow online.
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-neutral-600 sm:text-base sm:leading-relaxed">
+            A Frontend Developer and UI/UX Designer who loves building modern, scalable, and user-friendly web experiences. I focus on clean UI, performance, and real-world solutions that help businesses grow online.
           </p>
 
-          <ul className="mt-7 space-y-4">
+          <ul className="mt-6 space-y-3.5">
             {highlights.map((item) => (
-              <li
-                key={item}
-                className="flex items-center gap-3"
-              >
+              <li key={item} className="flex items-center gap-3">
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#111111] text-white">
                   <Check size={16} />
                 </span>
-
-                <span className="text-sm font-semibold leading-6 text-[#222222]">
+                <span className="text-sm font-semibold leading-relaxed text-[#222222]">
                   {item}
                 </span>
               </li>
@@ -505,19 +465,19 @@ export default function About() {
         </div>
 
         {/* CHAT / CONTACT BANNER */}
-        <div className="relative mt-8 min-w-0 overflow-hidden rounded-2xl border border-[#F0D1B3] bg-gradient-to-br from-[#FCE5D0] to-[#F5C99F] p-4 sm:p-5">
-          <div className="pointer-events-none absolute -right-12 -top-16 size-44 rounded-full bg-white/30 blur-2xl" />
+        <div className="relative mt-8 min-w-0 overflow-hidden rounded-2xl border border-[#F0D1B3] bg-gradient-to-br from-[#FCE5D0] to-[#F5C99F] p-4 sm:p-5 transform-gpu">
+          <div className="pointer-events-none absolute -right-12 -top-16 size-44 rounded-full bg-white/30 blur-2xl transform-gpu" />
 
           <AnimatePresence mode="wait">
             {isChatOpen ? (
               <motion.div
                 id="rachix-chat-panel"
                 key="chat"
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
+                exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className="relative z-10 min-w-0"
+                className="relative z-10 min-w-0 transform-gpu"
               >
                 {/* CHAT HEADER */}
                 <div className="flex items-center justify-between gap-2 border-b border-black/10 pb-3">
@@ -530,7 +490,6 @@ export default function About() {
                       <h3 className="truncate text-xs font-extrabold sm:text-sm">
                         Rachix Studio AI Assistant
                       </h3>
-
                       <p className="flex items-center gap-1.5 text-[10px] text-neutral-700">
                         <span className="size-2 rounded-full bg-emerald-600" />
                         Virtual Assistant
@@ -544,7 +503,7 @@ export default function About() {
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label="Contact on WhatsApp"
-                      className="flex size-8 items-center justify-center rounded-lg bg-[#111111] text-[#25D366] transition hover:bg-[#333333]"
+                      className="flex size-8 items-center justify-center rounded-lg bg-[#111111] text-[#25D366] transition hover:bg-[#333333] touch-manipulation"
                     >
                       <MessageCircle size={17} />
                     </a>
@@ -553,7 +512,7 @@ export default function About() {
                       type="button"
                       onClick={() => setIsChatOpen(false)}
                       aria-label="Close chat"
-                      className="flex size-8 items-center justify-center rounded-lg border border-black/10 transition hover:bg-white/50"
+                      className="flex size-8 items-center justify-center rounded-lg border border-black/10 transition hover:bg-white/50 touch-manipulation cursor-pointer"
                     >
                       <X size={17} />
                     </button>
@@ -578,7 +537,7 @@ export default function About() {
                       }`}
                     >
                       <div
-                        className={`max-w-[88%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-xs leading-5 shadow-sm ${
+                        className={`max-w-[88%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-xs leading-relaxed shadow-2xs ${
                           message.sender === "user"
                             ? "rounded-br-sm bg-[#111111] text-white"
                             : "rounded-bl-sm border border-white/60 bg-white/90 text-[#222222]"
@@ -603,32 +562,28 @@ export default function About() {
 
                 {/* QUICK OPTIONS */}
                 {showWebsiteOptions ? (
-                  <div className="mb-3 flex flex-wrap gap-2">
+                  <div className="mb-3 flex flex-wrap gap-1.5">
                     {websiteTypes.map((type) => (
                       <button
                         key={type}
                         type="button"
                         disabled={isTyping}
-                        onClick={() =>
-                          handleWebsiteTypeSelect(type)
-                        }
-                        className="rounded-lg bg-[#111111] px-3 py-1.5 text-[11px] font-semibold text-[#F5C99F] transition hover:bg-[#333333] disabled:opacity-50"
+                        onClick={() => handleWebsiteTypeSelect(type)}
+                        className="rounded-lg bg-[#111111] px-3 py-1.5 text-[11px] font-semibold text-[#F5C99F] transition hover:bg-[#333333] disabled:opacity-50 touch-manipulation cursor-pointer"
                       >
                         {type}
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <div className="mb-3 flex flex-wrap gap-2">
+                  <div className="mb-3 flex flex-wrap gap-1.5">
                     {quickPrompts.map((prompt) => (
                       <button
                         key={prompt}
                         type="button"
                         disabled={isTyping}
-                        onClick={() =>
-                          handleQuickPrompt(prompt)
-                        }
-                        className="rounded-full border border-black/10 bg-white/80 px-3 py-1.5 text-[11px] font-semibold transition hover:bg-white disabled:opacity-50"
+                        onClick={() => handleQuickPrompt(prompt)}
+                        className="rounded-full border border-black/10 bg-white/80 px-3 py-1.5 text-[11px] font-semibold transition hover:bg-white disabled:opacity-50 touch-manipulation cursor-pointer"
                       >
                         {prompt}
                       </button>
@@ -636,7 +591,7 @@ export default function About() {
                   </div>
                 )}
 
-                {/* INPUT */}
+                {/* INPUT FORM */}
                 <form
                   onSubmit={handleSend}
                   className="flex min-w-0 items-center gap-2"
@@ -646,45 +601,38 @@ export default function About() {
                     value={inputVal}
                     maxLength={1000}
                     disabled={isTyping}
-                    onChange={(e) =>
-                      setInputVal(e.target.value)
-                    }
+                    onChange={(e) => setInputVal(e.target.value)}
                     placeholder="Ask me anything..."
                     aria-label="Type your message"
-                    className="min-w-0 flex-1 rounded-xl border border-black/10 bg-white px-3 py-3 text-xs text-[#111111] outline-none transition placeholder:text-neutral-500 focus:border-[#C68B58] focus:ring-2 focus:ring-[#C68B58]/20 disabled:opacity-60"
+                    className="min-w-0 flex-1 rounded-xl border border-black/10 bg-white px-3 py-2.5 text-xs text-[#111111] outline-none transition placeholder:text-neutral-500 focus:border-[#C68B58] focus:ring-2 focus:ring-[#C68B58]/20 disabled:opacity-60"
                   />
 
                   <button
                     type="submit"
                     disabled={isTyping || !inputVal.trim()}
                     aria-label="Send message"
-                    className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#111111] text-[#F5C99F] transition hover:bg-[#333333] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#111111] text-[#F5C99F] transition hover:bg-[#333333] disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation cursor-pointer"
                   >
-                    <Send size={17} />
+                    <Send size={16} />
                   </button>
                 </form>
 
                 <p className="mt-2 text-center text-[10px] text-neutral-600">
-                  AI responses may contain mistakes.
-                  Confirm project details directly.
+                  AI responses may contain mistakes. Confirm project details directly.
                 </p>
               </motion.div>
             ) : (
               <motion.div
                 key="banner"
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+                exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
-                className="relative z-10 flex flex-col items-center justify-between gap-4 sm:flex-row"
+                className="relative z-10 flex flex-col items-center justify-between gap-4 sm:flex-row transform-gpu"
               >
                 <div className="flex items-center gap-3">
                   <div className="relative flex size-14 shrink-0 items-center justify-center rounded-full border-4 border-white/70 bg-[#111111] shadow-md sm:size-16">
-                    <UserRound
-                      size={30}
-                      className="text-[#F5C99F]"
-                    />
-
+                    <UserRound size={28} className="text-[#F5C99F]" />
                     <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-[#111111] bg-emerald-500" />
                   </div>
 
@@ -692,8 +640,7 @@ export default function About() {
                     <h3 className="text-sm font-extrabold">
                       Let&apos;s Build Together
                     </h3>
-
-                    <p className="mt-1 text-xs leading-5 text-neutral-700">
+                    <p className="mt-1 text-xs leading-relaxed text-neutral-700">
                       Have a project in mind? Let&apos;s talk.
                     </p>
                   </div>
@@ -703,13 +650,10 @@ export default function About() {
                   href={generalWhatsAppUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#111111] px-4 py-3 text-xs font-bold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#333333] sm:w-auto"
+                  className="group inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#111111] px-4 py-3 text-xs font-bold text-white shadow-md transition-all duration-200 hover:bg-[#333333] touch-manipulation sm:w-auto"
                 >
-                  <MessageCircle
-                    size={17}
-                    className="text-[#25D366]"
-                  />
-                  Connect on WhatsApp
+                  <MessageCircle size={16} className="text-[#25D366]" />
+                  <span>Connect on WhatsApp</span>
                   <ArrowUpRight
                     size={15}
                     className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"

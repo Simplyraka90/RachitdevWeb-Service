@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -252,7 +251,7 @@ export const metadata = {
   },
 ];
 
-const AUTO_CHANGE_MS = 500;
+const AUTO_CHANGE_MS = 1200; // Adjusted slightly for smoother reading on mobile devices
 
 export default function TechStack() {
   const [activeTab, setActiveTab] = useState(0);
@@ -262,7 +261,7 @@ export default function TechStack() {
   const orbitRef = useRef<HTMLDivElement>(null);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Resize only after hydration
+  // Resize calculation optimized for responsive viewports
   useEffect(() => {
     const container = orbitRef.current;
     if (!container) return;
@@ -273,18 +272,14 @@ export default function TechStack() {
 
       const maxSize =
         viewport < 400
-          ? 220
+          ? 210
           : viewport < 640
-          ? 290
+          ? 270
           : viewport < 1024
-          ? 380
-          : 420;
+          ? 350
+          : 400;
 
-      const nextSize = Math.max(
-        170,
-        Math.min(width - 76, maxSize)
-      );
-
+      const nextSize = Math.max(160, Math.min(width - 64, maxSize));
       setOrbitSize(nextSize);
     };
 
@@ -295,7 +290,7 @@ export default function TechStack() {
     return () => observer.disconnect();
   }, []);
 
-  // Auto cycle every 0.5 seconds
+  // Auto cycle active skill
   useEffect(() => {
     const timer = window.setInterval(() => {
       setActiveTab((previous) => (previous + 1) % tech.length);
@@ -318,7 +313,6 @@ export default function TechStack() {
   const copyCode = async () => {
     try {
       await navigator.clipboard.writeText(activeSkill.code);
-
       setCopied(true);
 
       if (copyTimerRef.current) {
@@ -338,10 +332,10 @@ export default function TechStack() {
       id="tech-stack"
       className="relative isolate scroll-mt-20 overflow-hidden bg-[#FFFBF7] px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
     >
-      {/* BACKGROUND WAVES */}
+      {/* BACKGROUND DECORATIVE WAVES & GLOWS */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden transform-gpu"
       >
         <svg
           className="absolute inset-0 h-full w-full opacity-30"
@@ -354,38 +348,39 @@ export default function TechStack() {
           />
         </svg>
 
-        <div className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F5C99F]/20 blur-[100px] sm:h-[650px] sm:w-[650px]" />
+        <div className="absolute left-1/2 top-1/2 h-[350px] w-[350px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F5C99F]/20 blur-[90px] sm:h-[600px] sm:w-[600px]" />
       </div>
 
       <div className="relative mx-auto max-w-7xl">
+        
         {/* HEADING */}
-        <Reveal className="mx-auto mb-8 max-w-2xl text-center sm:mb-12">
-          <span className="inline-flex rounded-full bg-[#F5C99F] px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-900">
+        <Reveal className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
+          <span className="inline-flex rounded-full bg-[#F5C99F] px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-900 shadow-2xs">
             Digital Expertise & Stack
           </span>
 
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900 sm:text-4xl lg:text-5xl">
+          <h2 className="mt-3.5 text-3xl font-extrabold tracking-tight text-neutral-900 sm:text-4xl lg:text-5xl">
             Interactive Core Engine
           </h2>
 
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-neutral-600 sm:text-base">
-            Explore the technologies and skills behind our modern,
-            responsive web experiences.
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-neutral-600 sm:text-base">
+            Explore the technologies and skills behind our modern, responsive web experiences.
           </p>
         </Reveal>
 
         {/* MAIN GRID */}
-        <div className="grid min-w-0 grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-10">
+        <div className="grid min-w-0 grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12">
+          
           {/* LEFT ORBIT */}
           <div
             ref={orbitRef}
-            className="flex min-w-0 flex-col items-center justify-center"
+            className="flex min-w-0 flex-col items-center justify-center transform-gpu"
           >
             <div
               className="relative flex shrink-0 items-center justify-center"
               style={{
-                width: orbitSize + 76,
-                height: orbitSize + 76,
+                width: orbitSize + 64,
+                height: orbitSize + 64,
                 maxWidth: "100%",
               }}
             >
@@ -401,10 +396,9 @@ export default function TechStack() {
                 <div className="pointer-events-none absolute inset-[22%] rounded-full border border-[#E8D6C4]" />
 
                 {/* CORE */}
-                <div className="relative z-10 flex size-[72px] flex-col items-center justify-center rounded-full border-[3px] border-[#F5C99F]/60 bg-neutral-900 text-white shadow-xl sm:size-24 lg:size-28">
-                  <Cpu className="size-6 animate-pulse text-[#F5C99F] sm:size-8" />
-
-                  <span className="mt-1 font-mono text-[9px] font-bold tracking-widest text-[#F5C99F] sm:text-[10px]">
+                <div className="relative z-10 flex size-18 flex-col items-center justify-center rounded-full border-[3px] border-[#F5C99F]/60 bg-neutral-900 text-white shadow-xl sm:size-22 lg:size-26">
+                  <Cpu className="size-6 animate-pulse text-[#F5C99F] sm:size-7" />
+                  <span className="mt-1 font-mono text-[9px] font-bold tracking-widest text-[#F5C99F]">
                     CORE
                   </span>
                 </div>
@@ -415,9 +409,7 @@ export default function TechStack() {
                   const isActive = activeTab === index;
 
                   const angle =
-                    (index * 2 * Math.PI) / tech.length -
-                    Math.PI / 2;
-
+                    (index * 2 * Math.PI) / tech.length - Math.PI / 2;
                   const radius = orbitSize / 2;
 
                   const x = Math.cos(angle) * radius;
@@ -436,18 +428,18 @@ export default function TechStack() {
                         top: `calc(50% + ${y}px)`,
                         transform: "translate(-50%, -50%)",
                       }}
-                      className={`group absolute flex items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B87A48] ${
+                      className={`group absolute flex items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B87A48] touch-manipulation ${
                         isActive ? "z-30" : "z-20"
                       }`}
                     >
                       <span
-                        className={`relative flex size-9 items-center justify-center rounded-xl border shadow-md transition-colors duration-200 min-[400px]:size-10 sm:size-12 sm:rounded-2xl lg:size-[52px] ${
+                        className={`relative flex size-9 items-center justify-center rounded-xl border shadow-xs transition-colors duration-200 min-[400px]:size-10 sm:size-11 sm:rounded-2xl lg:size-12 ${
                           isActive
                             ? "border-[#F5C99F] bg-neutral-900 text-[#F5C99F] ring-[3px] ring-[#F5C99F]/50"
                             : "border-[#E8D6C4] bg-[#FFF7EF] text-neutral-800 group-hover:border-[#D8A878] group-hover:bg-white"
                         }`}
                       >
-                        <Icon className="size-[18px] sm:size-6" />
+                        <Icon className="size-4 sm:size-5" />
 
                         {isActive && (
                           <span className="absolute -right-1 -top-1 size-2.5 rounded-full border-2 border-white bg-[#F5C99F]" />
@@ -460,38 +452,35 @@ export default function TechStack() {
             </div>
 
             {/* ACTIVE SKILL LABEL */}
-            <div className="mt-2 flex min-h-[70px] w-full max-w-[280px] flex-col items-center justify-center rounded-2xl border border-[#E8D6C4] bg-white/95 px-4 py-3 text-center shadow-sm sm:mt-3">
+            <div className="mt-4 flex min-h-[64px] w-full max-w-[260px] flex-col items-center justify-center rounded-2xl border border-[#E8D6C4] bg-white/95 px-4 py-2.5 text-center shadow-2xs">
               <div className="flex items-center justify-center gap-2">
                 <ActiveIcon className="size-4 shrink-0 text-[#B87A48]" />
-
                 <span className="text-sm font-bold text-neutral-900 sm:text-base">
                   {activeSkill.name}
                 </span>
               </div>
-
-              <p className="mt-1 text-[11px] text-neutral-500">
+              <p className="mt-0.5 text-[11px] text-neutral-500">
                 {activeSkill.subtitle}
               </p>
             </div>
           </div>
 
           {/* RIGHT TERMINAL */}
-          <div className="w-full min-w-0">
-            <div className="relative overflow-hidden rounded-2xl border-[3px] border-neutral-900 bg-[#0D1117] shadow-2xl sm:rounded-3xl sm:border-[6px]">
+          <div className="w-full min-w-0 transform-gpu">
+            <div className="relative overflow-hidden rounded-2xl border-[3px] border-neutral-900 bg-[#0D1117] shadow-xl sm:rounded-3xl sm:border-[6px]">
+              
               {/* TERMINAL HEADER */}
-              <div className="relative z-20 flex min-w-0 items-center justify-between gap-2 border-b border-white/10 bg-[#161B22] px-3 py-3 sm:px-5 sm:py-3.5">
+              <div className="relative z-20 flex min-w-0 items-center justify-between gap-2 border-b border-white/10 bg-[#161B22] px-3.5 py-3 sm:px-5 sm:py-3.5">
                 <div className="flex min-w-0 items-center gap-2">
-                  <div className="flex shrink-0 gap-1">
+                  <div className="flex shrink-0 gap-1.5">
                     <span className="size-2.5 rounded-full bg-red-500" />
                     <span className="size-2.5 rounded-full bg-yellow-500" />
                     <span className="size-2.5 rounded-full bg-green-500" />
                   </div>
 
-                  <div className="ml-1 flex min-w-0 items-center gap-1.5 rounded-md border border-white/5 bg-black/40 px-2 py-1.5 font-mono text-[10px] text-gray-300 sm:ml-3 sm:px-3 sm:text-xs">
+                  <div className="ml-1 flex min-w-0 items-center gap-1.5 rounded-md border border-white/5 bg-black/40 px-2 py-1 font-mono text-[10px] text-gray-300 sm:ml-3 sm:px-3 sm:text-xs">
                     <Terminal className="size-3 shrink-0 text-[#F5C99F]" />
-                    <span className="truncate">
-                      {activeSkill.id}.enterprise.ts
-                    </span>
+                    <span className="truncate">{activeSkill.id}.enterprise.ts</span>
                   </div>
                 </div>
 
@@ -504,14 +493,13 @@ export default function TechStack() {
                     type="button"
                     onClick={copyCode}
                     aria-label={copied ? "Code copied" : "Copy code"}
-                    className="flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
+                    className="flex cursor-pointer items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 transition-colors hover:bg-white/10 hover:text-white touch-manipulation"
                   >
                     {copied ? (
                       <CheckCircle2 className="size-3.5 text-green-400" />
                     ) : (
                       <Copy className="size-3.5" />
                     )}
-
                     <span className="hidden sm:inline">
                       {copied ? "Copied" : "Copy"}
                     </span>
@@ -520,43 +508,41 @@ export default function TechStack() {
               </div>
 
               {/* TERMINAL BODY */}
-              <div className="relative min-h-[290px] overflow-hidden p-4 font-mono text-[11px] leading-relaxed text-gray-200 sm:min-h-[340px] sm:p-6 sm:text-xs">
+              <div className="relative min-h-[260px] overflow-hidden p-4 font-mono text-[11px] leading-relaxed text-gray-200 sm:min-h-[300px] sm:p-6 sm:text-xs">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeSkill.id}
-                    className="flex min-h-[250px] flex-col justify-between sm:min-h-[290px]"
+                    className="flex min-h-[230px] flex-col justify-between sm:min-h-[260px]"
                   >
                     {/* FALLING ICON */}
                     <motion.div
-                      initial={{ y: -50, opacity: 0, scale: 0.4 }}
+                      initial={{ y: -30, opacity: 0, scale: 0.5 }}
                       animate={{
-                        y: [-50, 4, 0],
+                        y: [-30, 2, 0],
                         opacity: 1,
-                        scale: [0.4, 1.01, 1],
+                        scale: [0.5, 1.02, 1],
                       }}
-                      exit={{ y: 60, opacity: 0, scale: 0.5 }}
+                      exit={{ y: 30, opacity: 0, scale: 0.6 }}
                       transition={{
-                        duration: 0.2,
+                        duration: 0.18,
                         ease: "easeOut",
                       }}
                       className="pointer-events-none absolute right-3 top-3 z-10 sm:right-5 sm:top-5"
                     >
-                      <div className="rounded-xl border border-white/10 bg-white/5 p-2 shadow-xl backdrop-blur-xl sm:rounded-2xl sm:p-3">
-                        <ActiveIcon
-                          className={`size-6 sm:size-8 ${activeSkill.color}`}
-                        />
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-2 shadow-lg backdrop-blur-md sm:rounded-2xl sm:p-2.5">
+                        <ActiveIcon className={`size-5 sm:size-7 ${activeSkill.color}`} />
                       </div>
                     </motion.div>
 
                     {/* CODE REVEAL */}
                     <motion.div
-                      initial={{ opacity: 0, y: 8 }}
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.15 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.12 }}
                       className="relative z-0 min-w-0 pr-8 sm:pr-10"
                     >
-                      <pre className="max-w-full overflow-x-auto whitespace-pre text-[10px] font-medium tracking-wide sm:text-xs">
+                      <pre className="max-w-full overflow-x-auto whitespace-pre text-[10px] sm:text-xs font-medium tracking-wide">
                         <code>{activeSkill.code}</code>
                       </pre>
                     </motion.div>
@@ -565,16 +551,14 @@ export default function TechStack() {
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: 0.05 }}
-                      className="relative z-10 mt-6 flex min-w-0 items-center justify-between gap-2 border-t border-white/10 pt-3 font-sans"
+                      transition={{ delay: 0.04 }}
+                      className="relative z-10 mt-5 flex min-w-0 items-center justify-between gap-2 border-t border-white/10 pt-3 font-sans"
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="size-2.5 shrink-0 rounded-full border border-[#F5C99F] bg-[#F5C99F]/30" />
-
-                        <span className="truncate text-[11px] font-bold text-white sm:text-sm">
+                        <span className="truncate text-xs font-bold text-white sm:text-sm">
                           {activeSkill.name}
                         </span>
-
                         <span className="hidden truncate text-xs text-gray-400 sm:inline">
                           • {activeSkill.subtitle}
                         </span>
@@ -588,8 +572,10 @@ export default function TechStack() {
                   </motion.div>
                 </AnimatePresence>
               </div>
+
             </div>
           </div>
+
         </div>
       </div>
     </section>

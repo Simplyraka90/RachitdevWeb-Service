@@ -3,9 +3,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { Menu, X, CalendarDays, Sparkles } from "lucide-react";
-
 
 const links = [
   { name: "Home", href: "/#home" },
@@ -17,10 +17,11 @@ const links = [
   { name: "Contact", href: "/#contact" },
 ];
 
+const WELCOME_DURATION = 1200;
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [progress, setProgress] = useState(0);
   const [activeTab, setActiveTab] = useState("Home");
 
@@ -28,21 +29,96 @@ export default function Navbar() {
     typeof setTimeout
   > | null>(null);
 
-  // Original Smooth Loading Counter
+  // Welcome screen without synchronous setState in effect
   useEffect(() => {
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(timer);
-          setTimeout(() => setIsLoading(false), 500);
-          return 100;
+    if (window.location.pathname !== "/") return;
+
+    let alreadySeen = false;
+
+    try {
+      alreadySeen =
+        sessionStorage.getItem("rachix-welcome-seen") === "1";
+    } catch {
+      // Safari private mode may restrict storage
+    }
+
+    if (alreadySeen) return;
+
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (reducedMotion) return;
+
+    let frame = 0;
+    let closeTimer: ReturnType<typeof setTimeout> | undefined;
+    let startTime = 0;
+
+    // Schedule the first state update asynchronously
+    frame = requestAnimationFrame((time) => {
+      setShowWelcome(true);
+
+      try {
+        sessionStorage.setItem("rachix-welcome-seen", "1");
+      } catch {
+        // Storage unavailable
+      }
+
+      startTime = time;
+
+      const updateProgress = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+
+        const next = Math.min(
+          100,
+          Math.round(
+            (elapsed / WELCOME_DURATION) * 100
+          )
+        );
+
+        setProgress(next);
+
+        if (next < 100) {
+          frame = requestAnimationFrame(updateProgress);
         }
+      };
 
-        return prev + 2;
-      });
-    }, 18);
+      frame = requestAnimationFrame(updateProgress);
 
-    return () => clearInterval(timer);
+      closeTimer = setTimeout(() => {
+        setProgress(100);
+        setShowWelcome(false);
+      }, WELCOME_DURATION + 150);
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+      }
+    };
+  }, []);
+
+  // Active link from URL
+  useEffect(() => {
+    const updateActive = () => {
+      const hash = window.location.hash;
+
+      const current = links.find(
+        (link) => link.href === `/${hash}`
+      );
+
+      setActiveTab(current?.name || "Home");
+    };
+
+    window.addEventListener("hashchange", updateActive);
+    window.addEventListener("popstate", updateActive);
+
+    return () => {
+      window.removeEventListener("hashchange", updateActive);
+      window.removeEventListener("popstate", updateActive);
+    };
   }, []);
 
   // Cleanup pending navigation
@@ -54,54 +130,108 @@ export default function Navbar() {
     };
   }, []);
 
-  // FIX: Smooth navigation for desktop, tablet and mobile
+  // Close menu on Escape
+  useEffect(() => {
+    if (!open) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
+
+  // Close dropdown when switching to desktop
+  useEffect(() => {
+    const media = window.matchMedia(
+      "(min-width: 1280px)"
+    );
+
+    const closeOnDesktop = () => {
+      if (media.matches) {
+        setOpen(false);
+      }
+    };
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", closeOnDesktop);
+
+      return () => {
+        media.removeEventListener(
+          "change",
+          closeOnDesktop
+        );
+      };
+    }
+
+    media.addListener(closeOnDesktop);
+
+    return () => {
+      media.removeListener(closeOnDesktop);
+    };
+  }, []);
+
+  // Smooth section navigation
   const handleNavClick = (
     event: MouseEvent<HTMLAnchorElement>,
     href: string,
     name: string
   ) => {
     const id = href.split("#")[1];
+    const menuWasOpen = open;
+
+    setOpen(false);
+    setActiveTab(name);
 
     if (!id) return;
 
-    const target = document.getElementById(id);
-
-    // If navigating from another page, allow normal link navigation
-    if (!target) {
-      setOpen(false);
+    // Let Next.js handle navigation from other pages
+    if (window.location.pathname !== "/") {
       return;
     }
 
+    const target = document.getElementById(id);
+
+    // Allow native hash navigation when target is absent
+    if (!target) return;
+
     event.preventDefault();
-
-    setActiveTab(name);
-
-    const wasMobileMenuOpen = open;
-
-    setOpen(false);
 
     if (navigationTimer.current) {
       clearTimeout(navigationTimer.current);
     }
 
-    // Wait for original 0.25s dropdown exit animation
-    const delay = wasMobileMenuOpen ? 300 : 0;
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    const delay =
+      menuWasOpen && !reducedMotion ? 260 : 0;
 
     navigationTimer.current = setTimeout(() => {
       const section = document.getElementById(id);
 
-      if (!section) return;
+      if (!section) {
+        window.location.hash = id;
+        return;
+      }
 
       const navbarOffset = 110;
 
-      const targetPosition =
+      const top =
         section.getBoundingClientRect().top +
         window.scrollY -
         navbarOffset;
 
       window.scrollTo({
-        top: Math.max(0, targetPosition),
-        behavior: "smooth",
+        top: Math.max(0, top),
+        behavior: reducedMotion ? "auto" : "smooth",
       });
 
       window.history.replaceState(
@@ -114,56 +244,53 @@ export default function Navbar() {
 
   return (
     <>
-      {/* 1. PROFESSIONAL WELCOME OVERLAY */}
+      {/* WELCOME SCREEN */}
       <AnimatePresence>
-        {isLoading && (
+        {showWelcome && (
           <motion.div
+            key="welcome-screen"
             initial={{ opacity: 1 }}
-            exit={{
-              opacity: 0,
-              scale: 1.03,
-              filter: "blur(10px)",
-            }}
+            exit={{ opacity: 0 }}
             transition={{
-              duration: 0.7,
-              ease: [0.16, 1, 0.3, 1],
+              duration: 0.35,
+              ease: "easeOut",
             }}
             style={{ zIndex: 9999 }}
             className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-[#0A0A0D] px-6 py-10 text-white select-none"
+            aria-label="Welcome to Rachix Studio"
           >
-            {/* Background Ambient Glowing Orbs */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              <div className="absolute -left-20 top-1/4 h-100 w-100 rounded-full bg-[#B77842]/20 blur-[140px]" />
-              <div className="absolute -right-20 bottom-1/4 h-100 w-100 rounded-full bg-[#F5C99F]/15 blur-[140px]" />
+            {/* Background glow */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="absolute -left-20 top-1/4 h-64 w-64 rounded-full bg-[#B77842]/20 blur-3xl sm:h-96 sm:w-96" />
+              <div className="absolute -right-20 bottom-1/4 h-64 w-64 rounded-full bg-[#F5C99F]/15 blur-3xl sm:h-96 sm:w-96" />
             </div>
 
-            {/* Central Content Container */}
-            <div className="relative z-10 flex flex-col items-center text-center max-w-lg mx-auto">
-              {/* Top Tagline Badge */}
+            <div className="relative z-10 mx-auto flex max-w-lg flex-col items-center text-center">
+              {/* Tagline */}
               <motion.div
                 initial={{ y: -15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium tracking-widest text-[#F5C99F] backdrop-blur-md mb-8"
+                transition={{ duration: 0.4 }}
+                className="mb-8 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium tracking-widest text-[#F5C99F]"
               >
                 <Sparkles
                   size={14}
-                  className="text-[#B77842] animate-spin"
+                  className="text-[#B77842]"
                 />
                 <span>RACHIT DEV Web Services</span>
               </motion.div>
 
-              {/* Animated Logo Container */}
+              {/* Animated logo */}
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{
-                  duration: 0.6,
-                  ease: [0.16, 1, 0.3, 1],
+                  duration: 0.5,
+                  ease: "easeOut",
                 }}
                 className="relative mb-6 flex items-center justify-center"
               >
-                {/* Rotating Outer Ring */}
+                {/* Rotating gold ring */}
                 <motion.svg
                   animate={{ rotate: 360 }}
                   transition={{
@@ -171,8 +298,9 @@ export default function Navbar() {
                     repeat: Infinity,
                     ease: "linear",
                   }}
-                  className="absolute h-40 w-40 sm:h-48 sm:w-48 text-[#B77842]/80"
+                  className="absolute h-40 w-40 text-[#B77842]/80 sm:h-48 sm:w-48"
                   viewBox="0 0 120 120"
+                  aria-hidden="true"
                 >
                   <circle
                     cx="60"
@@ -185,26 +313,28 @@ export default function Navbar() {
                   />
                 </motion.svg>
 
-                {/* Clean Logo Box */}
-                <div className="relative flex h-32 w-32 sm:h-36 sm:w-36 items-center justify-center rounded-3xl bg-[#FFF9F2] p-4 shadow-[0_0_50px_rgba(245,201,159,0.3)]">
+                {/* Logo box */}
+                <div className="relative flex h-32 w-32 items-center justify-center rounded-3xl bg-[#FFF9F2] p-4 shadow-[0_0_35px_rgba(245,201,159,0.25)] sm:h-36 sm:w-36">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/weblog.png"
                     alt="Rachit Dev Logo"
+                    width={144}
+                    height={144}
                     className="h-full w-full object-contain"
                   />
                 </div>
               </motion.div>
 
-              {/* Enhanced Typography */}
+              {/* Welcome heading */}
               <motion.h1
                 initial={{ y: 15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{
-                  delay: 0.15,
-                  duration: 0.5,
+                  delay: 0.1,
+                  duration: 0.4,
                 }}
-                className="text-3xl sm:text-5xl font-black tracking-tight text-white mb-3"
+                className="mb-3 text-3xl font-black tracking-tight text-white sm:text-5xl"
               >
                 Welcome to{" "}
                 <span className="bg-linear-to-r from-[#F5C99F] via-[#B77842] to-[#F5C99F] bg-clip-text text-transparent">
@@ -212,30 +342,31 @@ export default function Navbar() {
                 </span>
               </motion.h1>
 
+              {/* Description */}
               <motion.p
                 initial={{ y: 15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{
-                  delay: 0.25,
-                  duration: 0.5,
+                  delay: 0.2,
+                  duration: 0.4,
                 }}
-                className="text-sm sm:text-base font-normal text-neutral-400 tracking-wide mb-10 max-w-md"
+                className="mb-10 max-w-md text-sm font-normal tracking-wide text-neutral-400 sm:text-base"
               >
-                Crafting modern, high-performance web solutions & services
+                Crafting modern, high-performance web solutions &amp; services
               </motion.p>
 
-              {/* Centered Loading Line */}
+              {/* Loading progress */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{
-                  delay: 0.35,
-                  duration: 0.5,
+                  delay: 0.25,
+                  duration: 0.4,
                 }}
-                className="flex flex-col items-center w-48 sm:w-56"
+                className="flex w-48 flex-col items-center sm:w-56"
               >
-                <div className="flex items-center justify-between w-full text-[11px] font-semibold tracking-widest text-neutral-400 mb-2">
-                  <span className="animate-pulse text-[#F5C99F]">
+                <div className="mb-2 flex w-full items-center justify-between text-[11px] font-semibold tracking-widest text-neutral-400">
+                  <span className="text-[#F5C99F]">
                     LOADING
                   </span>
                   <span className="text-[#F5C99F]">
@@ -244,10 +375,11 @@ export default function Navbar() {
                 </div>
 
                 <div className="relative h-1 w-full overflow-hidden rounded-full bg-white/10">
-                  <motion.div
-                    className="h-full bg-linear-to-r from-[#B77842] to-[#F5C99F] rounded-full shadow-[0_0_12px_rgba(245,201,159,0.7)]"
-                    style={{ width: `${progress}%` }}
-                    transition={{ ease: "easeOut" }}
+                  <div
+                    className="h-full rounded-full bg-linear-to-r from-[#B77842] to-[#F5C99F] shadow-[0_0_12px_rgba(245,201,159,0.7)]"
+                    style={{
+                      width: `${progress}%`,
+                    }}
                   />
                 </div>
               </motion.div>
@@ -256,55 +388,61 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* 2. ORIGINAL MATCHING NAVBAR DESIGN */}
+      {/* NAVBAR */}
       <header className="sticky top-0 z-50 w-full px-3 pt-4 sm:px-6 lg:px-8">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-[#E8DCCF] bg-[#FFFBF7]/95 px-5 py-3 shadow-sm backdrop-blur-xl sm:px-7">
-          {/* Brand Logo & Title */}
-          <a
-            href="#home"
-            onClick={(e) =>
-              handleNavClick(e, "/#home", "Home")
+        <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-[#E8DCCF] bg-[#FFFBF7]/95 px-4 py-3 shadow-sm sm:px-7 xl:backdrop-blur-xl">
+          {/* Brand */}
+          <Link
+            href="/#home"
+            onClick={(event) =>
+              handleNavClick(event, "/#home", "Home")
             }
-            className="group flex items-center gap-3.5"
+            className="group flex min-w-0 items-center gap-3.5"
           >
-            <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center transition-transform duration-300 group-hover:scale-105">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center transition-transform duration-300 group-hover:scale-105 sm:h-14 sm:w-14">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/weblog.png"
                 alt="Rachit Dev Logo"
+                width={56}
+                height={56}
                 className="h-full w-full object-contain"
               />
             </div>
 
-            <div className="flex flex-col">
-              <strong className="text-base sm:text-lg font-extrabold leading-tight text-neutral-900 tracking-tight">
+            <div className="flex min-w-0 flex-col">
+              <strong className="whitespace-nowrap text-base font-extrabold leading-tight tracking-tight text-neutral-900 sm:text-lg">
                 Rachix Studio
               </strong>
-              <small className="text-[11px] sm:text-xs font-semibold text-neutral-500">
+              <small className="text-[11px] font-semibold text-neutral-500 sm:text-xs">
                 Web Service
               </small>
             </div>
-          </a>
+          </Link>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden items-center gap-7 lg:flex">
-            {links.map((l) => {
-              const isActive = activeTab === l.name;
+          {/* Desktop links */}
+          <div className="hidden items-center gap-5 xl:flex 2xl:gap-7">
+            {links.map((link) => {
+              const isActive = activeTab === link.name;
 
               return (
-                <a
-                  key={l.name}
-                  href={l.href}
-                  onClick={(e) =>
-                    handleNavClick(e, l.href, l.name)
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={(event) =>
+                    handleNavClick(
+                      event,
+                      link.href,
+                      link.name
+                    )
                   }
-                  className={`relative text-sm font-bold transition-colors ${
+                  className={`relative whitespace-nowrap text-sm font-bold transition-colors ${
                     isActive
                       ? "text-neutral-950"
                       : "text-neutral-700 hover:text-neutral-950"
                   }`}
                 >
-                  {l.name}
+                  {link.name}
 
                   {isActive && (
                     <motion.span
@@ -317,47 +455,55 @@ export default function Navbar() {
                       }}
                     />
                   )}
-                </a>
+                </Link>
               );
             })}
           </div>
 
-          {/* CTA Book Call Button */}
+          {/* Book a Call */}
           <div className="hidden items-center gap-3 sm:flex">
-            <a
-              href="#contact"
-              onClick={(e) =>
-                handleNavClick(e, "/#contact", "Contact")
+            <Link
+              href="/#contact"
+              onClick={(event) =>
+                handleNavClick(
+                  event,
+                  "/#contact",
+                  "Contact"
+                )
               }
-              className="flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-neutral-800 hover:scale-[1.02] shadow-sm"
+              className="flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-neutral-800 sm:text-sm"
             >
               <CalendarDays
                 size={16}
                 className="text-[#F5C99F]"
               />
               <span>Book a Call</span>
-            </a>
+            </Link>
           </div>
 
-          {/* Mobile Menu Toggle Button */}
+          {/* Mobile toggle */}
           <button
             type="button"
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             aria-controls="mobile-nav"
-            onClick={() => setOpen(!open)}
-            className="rounded-full border border-[#E8DCCF] p-2 text-neutral-800 transition hover:bg-[#E8DCCF]/40 lg:hidden focus:outline-none"
+            onClick={() => setOpen((value) => !value)}
+            className="rounded-full border border-[#E8DCCF] p-2 text-neutral-800 transition-colors hover:bg-[#E8DCCF]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B77842] xl:hidden"
           >
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
         </nav>
 
-        {/* 3. ORIGINAL MOBILE MENU DROPDOWN */}
-        <AnimatePresence>
+        {/* Mobile dropdown */}
+        <AnimatePresence initial={false}>
           {open && (
             <motion.div
               id="mobile-nav"
-              initial={{ opacity: 0, height: 0, y: -10 }}
+              initial={{
+                opacity: 0,
+                height: 0,
+                y: -10,
+              }}
               animate={{
                 opacity: 1,
                 height: "auto",
@@ -372,32 +518,37 @@ export default function Navbar() {
                 duration: 0.25,
                 ease: "easeInOut",
               }}
-              className="mx-auto mt-2 max-w-7xl overflow-hidden rounded-3xl border border-[#E8DCCF] bg-[#FFFBF7] shadow-xl lg:hidden"
+              className="mx-auto mt-2 max-w-7xl overflow-hidden rounded-3xl border border-[#E8DCCF] bg-[#FFFBF7] shadow-xl xl:hidden"
             >
               <div className="flex flex-col gap-1.5 p-4 sm:p-5">
-                {links.map((l) => (
-                  <a
-                    key={l.name}
-                    href={l.href}
-                    onClick={(e) =>
-                      handleNavClick(e, l.href, l.name)
+                {links.map((link) => (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    onClick={(event) =>
+                      handleNavClick(
+                        event,
+                        link.href,
+                        link.name
+                      )
                     }
-                    className={`rounded-2xl px-4 py-2.5 text-sm font-bold transition ${
-                      activeTab === l.name
+                    className={`rounded-2xl px-4 py-2.5 text-sm font-bold transition-colors ${
+                      activeTab === link.name
                         ? "bg-[#E8DCCF]/50 text-neutral-950"
                         : "text-neutral-700 hover:bg-[#E8DCCF]/30"
                     }`}
                   >
-                    {l.name}
-                  </a>
+                    {link.name}
+                  </Link>
                 ))}
 
+                {/* Mobile Book a Call */}
                 <div className="mt-2 border-t border-[#E8DCCF] pt-3 sm:hidden">
-                  <a
-                    href="#contact"
-                    onClick={(e) =>
+                  <Link
+                    href="/#contact"
+                    onClick={(event) =>
                       handleNavClick(
-                        e,
+                        event,
                         "/#contact",
                         "Contact"
                       )
@@ -409,7 +560,7 @@ export default function Navbar() {
                       className="text-[#F5C99F]"
                     />
                     <span>Book a Call</span>
-                  </a>
+                  </Link>
                 </div>
               </div>
             </motion.div>
