@@ -21,11 +21,14 @@ type ChatMessage = {
   text: string;
 };
 
+
 const highlights = [
-  "B.Tech (CSD) — Final Year",
-  "Frontend Development Internship Experience",
-  "10+ Live Projects",
+  "B.Tech Graduate — Computer Science & Design",
+  "Frontend Developer | React.js & Next.js",
+  "7 Months of Professional Experience",
+  "30+ Projects Successfully Completed",
 ];
+
 
 const quickPrompts = [
   "I need a website",
