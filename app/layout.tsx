@@ -1,11 +1,47 @@
 
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-<meta name="google-site-verification" content="qtnEffN9GqG3y0ZEwBul4xutbA1g_FLV7gmfgv3JX5o" />
+
 export const metadata: Metadata = {
-  title: "Rachit Dev | Web Development Services",
+  title: "Rachix Studio | Professional Web Design & Development",
+
   description:
-    "Responsive React and Next.js development, UI/UX implementation and modern web applications.",
+    "Rachix Studio offers affordable, professional website design and development services for businesses, cafés, restaurants, hotels, e-commerce stores and portfolios.",
+
+  keywords: [
+    "Rachix Studio",
+    "Website Development Services",
+    "Professional Web Design",
+    "Affordable Website Design",
+    "Business Website Development",
+    "Cafe Website Design",
+    "Restaurant Website Development",
+    "Hotel Website Design",
+    "E-Commerce Website Development",
+    "Portfolio Website Design",
+    "Custom Website Development",
+    "Responsive Website Design",
+    "Web Development Services India",
+  ],
+
+  verification: {
+    google: "qtnEffN9GqG3y0ZEwBul4xutbA1g_FLV7gmfgv3JX5o",
+  },
+
+  openGraph: {
+    title: "Rachix Studio | Professional Web Design & Development",
+    description:
+      "Professional, modern and affordable websites for businesses, cafés, restaurants, hotels and online stores.",
+    url: "https://rachitdevwebser.vercel.app/",
+    siteName: "Rachix Studio",
+    type: "website",
+    locale: "en_IN",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+  },
 
   icons: {
     icon: "/weblog.png",

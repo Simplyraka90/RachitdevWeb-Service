@@ -23,18 +23,14 @@ type InquiryData = {
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Read environment variables
     const apiKey = process.env.RESEND_API_KEY;
     const recipientEmail = process.env.INQUIRY_TO_EMAIL;
 
     const senderEmail =
       process.env.EMAIL_FROM ||
-      "Rachit Dev Web Service <onboarding@resend.dev>";
+      "Rachix Studio <onboarding@resend.dev>";
 
-    // 2. Check configuration
     if (!apiKey || !recipientEmail) {
-      console.error("Missing Resend email configuration");
-
       return NextResponse.json(
         {
           success: false,
@@ -44,7 +40,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Read form details
     let body: Partial<InquiryData>;
 
     try {
@@ -79,7 +74,7 @@ export async function POST(request: NextRequest) {
         ? body.message.trim()
         : "";
 
-    // 4. Validate input
+    // Validate form details
     if (
       name.length < 2 ||
       name.length > 100 ||
@@ -98,60 +93,95 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Initialize Resend
     const resend = new Resend(apiKey);
 
-    // 6. Send inquiry to your Gmail
-    const { data, error } = await resend.emails.send({
-      from: senderEmail,
-
-      to: [recipientEmail],
-
-      // Reply directly to the client
-      replyTo: email,
-
-      subject: `New Project Inquiry - ${projectType}`,
-
-      text: [
-        "NEW PROJECT INQUIRY",
-        "Rachit Dev Web Service",
-        "",
-        `Client Name: ${name}`,
-        `Client Email: ${email}`,
-        `Project Type: ${projectType}`,
-        "",
-        "PROJECT DETAILS:",
-        message,
-        "",
-        "You can reply directly to this email",
-        "to contact the client.",
-      ].join("\n"),
-    });
-
-    // 7. Handle Resend errors
-    if (error) {
-      console.error("Resend API Error:", {
-        name: error.name,
-        message: error.message,
+    // STEP 1: Send inquiry to admin
+    const { data: adminData, error: adminError } =
+      await resend.emails.send({
+        from: senderEmail,
+        to: [recipientEmail],
+        replyTo: email,
+        subject: `New Project Inquiry - ${projectType}`,
+        text: [
+          "NEW PROJECT INQUIRY",
+          "Rachix Studio",
+          "",
+          `Client Name: ${name}`,
+          `Client Email: ${email}`,
+          `Project Type: ${projectType}`,
+          "",
+          "PROJECT DETAILS:",
+          message,
+          "",
+          "Reply directly to this email to contact the client.",
+        ].join("\n"),
       });
+
+    if (adminError) {
+      console.error("Admin Email Error:", adminError);
 
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Unable to send your inquiry right now. Please try again later.",
+          error: "Unable to send your inquiry. Please try again.",
         },
         { status: 502 }
       );
     }
 
-    // 8. Return success
+    // STEP 2: Send automatic confirmation to client
+    const confirmationText = [
+      `Hi ${name},`,
+      "",
+      "Thank you for contacting Rachix Studio!",
+      "",
+      "We have successfully received your project requirements.",
+      "Our team will review your details and get back to you as soon as possible.",
+      "",
+      `Project Type: ${projectType}`,
+      "",
+      "We appreciate your interest in our services.",
+      "",
+      "Best regards,",
+      "Rachix Studio Team",
+      "",
+      "This is an automated confirmation email.",
+    ].join("\n");
+
+    const { data: clientData, error: clientError } =
+      await resend.emails.send({
+        from: senderEmail,
+        to: [email],
+        replyTo: recipientEmail,
+        subject: "We've Received Your Project Request | Rachix Studio",
+        text: confirmationText,
+      });
+
+    if (clientError) {
+      console.error("Client Confirmation Error:", clientError);
+
+      // Admin already received the inquiry.
+      // Do not ask the user to submit it again.
+      return NextResponse.json(
+        {
+          success: true,
+          confirmationSent: false,
+          message:
+            "Your inquiry has been received. We will contact you soon.",
+          id: adminData?.id,
+        },
+        { status: 200 }
+      );
+    }
+
     return NextResponse.json(
       {
         success: true,
+        confirmationSent: true,
         message:
-          "Thank you! Your inquiry has been received. We will contact you soon.",
-        id: data?.id,
+          "Thank you! Your inquiry has been received. A confirmation email has been sent to your email address.",
+        id: adminData?.id,
+        confirmationId: clientData?.id,
       },
       { status: 200 }
     );
@@ -161,8 +191,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error:
-          "Something went wrong. Please try again later.",
+        error: "Something went wrong. Please try again later.",
       },
       { status: 500 }
     );
