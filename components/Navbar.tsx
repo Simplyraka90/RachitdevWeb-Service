@@ -4,8 +4,17 @@
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
-import { Menu, X, CalendarDays, Sparkles } from "lucide-react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+} from "motion/react";
+import {
+  Menu,
+  X,
+  CalendarDays,
+  Sparkles,
+} from "lucide-react";
 
 const links = [
   { name: "Home", href: "/#home" },
@@ -17,128 +26,119 @@ const links = [
   { name: "Contact", href: "/#contact" },
 ];
 
-const WELCOME_DURATION = 1200;
+const WELCOME_DURATION = 1600;
+const WELCOME_EXIT_DURATION = 350;
+const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [activeTab, setActiveTab] = useState("Home");
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  const navigationTimer = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
+  const reduceMotion = useReducedMotion();
 
-  // Detect reduced-motion preference
+  const navigationTimer = useRef<
+    ReturnType<typeof setTimeout> | null
+  >(null);
+
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  // Welcome animation with accurate progress
   useEffect(() => {
-    const media = window.matchMedia(
+    const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
-    );
+    ).matches;
 
-    const update = () => {
-      setReduceMotion(media.matches);
-    };
+    if (reduced) {
+      const timer = window.setTimeout(() => {
+        setProgress(100);
+        setIsLoading(false);
+      }, 0);
 
-    update();
-
-    if (typeof media.addEventListener === "function") {
-      media.addEventListener("change", update);
-
-      return () => {
-        media.removeEventListener("change", update);
-      };
+      return () => clearTimeout(timer);
     }
 
-    media.addListener(update);
+    let frameId = 0;
+    let startTime: number | null = null;
+    let completed = false;
+    let closeTimer: ReturnType<typeof setTimeout> | null =
+      null;
 
-    return () => {
-      media.removeListener(update);
-    };
-  }, []);
-
-  // Welcome screen: once per tab session
-  useEffect(() => {
-    if (window.location.pathname !== "/") return;
-
-    try {
-      if (
-        sessionStorage.getItem("rachix-welcome-seen") === "1"
-      ) {
-        return;
+    const animateProgress = (time: number) => {
+      if (startTime === null) {
+        startTime = time;
       }
 
-      sessionStorage.setItem("rachix-welcome-seen", "1");
-    } catch {
-      // Continue if Safari storage is unavailable
-    }
-
-    if (
-      window.matchMedia(
-        "(prefers-reduced-motion: reduce)"
-      ).matches
-    ) {
-      return;
-    }
-
-    const startWelcome = () => {
-      requestAnimationFrame(() => {
-        setShowWelcome(true);
-      });
-    };
-
-    startWelcome();
-
-    let frame = 0;
-    const startTime = performance.now();
-
-    const updateProgress = (time: number) => {
       const elapsed = time - startTime;
 
       const value = Math.min(
         100,
-        Math.round(
+        Math.floor(
           (elapsed / WELCOME_DURATION) * 100
         )
       );
 
       setProgress(value);
 
-      if (value < 100) {
-        frame = requestAnimationFrame(updateProgress);
+      if (elapsed < WELCOME_DURATION) {
+        frameId = requestAnimationFrame(animateProgress);
+      } else if (!completed) {
+        completed = true;
+        setProgress(100);
+
+        closeTimer = setTimeout(() => {
+          setIsLoading(false);
+        }, 150);
       }
     };
 
-    frame = requestAnimationFrame(updateProgress);
-
-    const closeTimer = setTimeout(() => {
-      setProgress(100);
-      setShowWelcome(false);
-    }, WELCOME_DURATION + 150);
+    frameId = requestAnimationFrame(animateProgress);
 
     return () => {
-      cancelAnimationFrame(frame);
-      clearTimeout(closeTimer);
+      cancelAnimationFrame(frameId);
+
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+      }
     };
   }, []);
 
-  // Sync active navigation with URL
+  // Lightweight scroll detection
+  useEffect(() => {
+    let frameId = 0;
+
+    const handleScroll = () => {
+      if (frameId) return;
+
+      frameId = requestAnimationFrame(() => {
+        setScrolled(window.scrollY > 20);
+        frameId = 0;
+      });
+    };
+
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll, {
+      passive: true,
+    });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, []);
+
+  // Keep active tab synced with URL
   useEffect(() => {
     const updateActive = () => {
-      const hash = window.location.hash;
-
-      if (!hash) {
-        setActiveTab("Home");
-        return;
-      }
-
       const current = links.find(
-        (link) => link.href === `/${hash}`
+        (link) =>
+          link.href === `/${window.location.hash}`
       );
 
-      if (current) {
-        setActiveTab(current.name);
-      }
+      setActiveTab(current?.name || "Home");
     };
 
     updateActive();
@@ -147,39 +147,27 @@ export default function Navbar() {
     window.addEventListener("popstate", updateActive);
 
     return () => {
-      window.removeEventListener("hashchange", updateActive);
-      window.removeEventListener("popstate", updateActive);
+      window.removeEventListener(
+        "hashchange",
+        updateActive
+      );
+      window.removeEventListener(
+        "popstate",
+        updateActive
+      );
     };
   }, []);
 
-  // Cleanup navigation timer
-  useEffect(() => {
-    return () => {
-      if (navigationTimer.current) {
-        clearTimeout(navigationTimer.current);
-      }
-    };
-  }, []);
-
-  // Close mobile menu with Escape
+  // Close menu on Escape / desktop resize
   useEffect(() => {
     if (!open) return;
 
-    const handleKey = (event: KeyboardEvent) => {
+    const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
       }
     };
 
-    window.addEventListener("keydown", handleKey);
-
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
-
-  // Close mobile menu when desktop breakpoint is reached
-  useEffect(() => {
     const media = window.matchMedia(
       "(min-width: 1280px)"
     );
@@ -188,25 +176,32 @@ export default function Navbar() {
       if (media.matches) setOpen(false);
     };
 
-    if (typeof media.addEventListener === "function") {
-      media.addEventListener("change", handleResize);
+    window.addEventListener("keydown", handleEscape);
 
-      return () => {
-        media.removeEventListener(
-          "change",
-          handleResize
-        );
-      };
-    }
-
-    media.addListener(handleResize);
+    media.addEventListener("change", handleResize);
 
     return () => {
-      media.removeListener(handleResize);
+      window.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+
+      media.removeEventListener(
+        "change",
+        handleResize
+      );
+    };
+  }, [open]);
+
+  // Cleanup pending navigation
+  useEffect(() => {
+    return () => {
+      if (navigationTimer.current) {
+        clearTimeout(navigationTimer.current);
+      }
     };
   }, []);
 
-  // Smooth and reliable navigation
   const handleNavClick = (
     event: MouseEvent<HTMLAnchorElement>,
     href: string,
@@ -218,10 +213,7 @@ export default function Navbar() {
     setOpen(false);
     setActiveTab(name);
 
-    if (!id) return;
-
-    // Let Next.js Link navigate from other routes
-    if (window.location.pathname !== "/") {
+    if (!id || window.location.pathname !== "/") {
       return;
     }
 
@@ -235,22 +227,21 @@ export default function Navbar() {
       clearTimeout(navigationTimer.current);
     }
 
-    const delay = wasOpen && !reduceMotion ? 260 : 0;
+    const delay =
+      wasOpen && !reduceMotion ? 260 : 0;
 
     navigationTimer.current = setTimeout(() => {
       const section = document.getElementById(id);
 
-      if (!section) {
-        window.location.hash = id;
-        return;
-      }
+      if (!section) return;
 
-      const navbarOffset = 110;
+      const offset =
+        (headerRef.current?.offsetHeight || 90) + 14;
 
       const top =
         section.getBoundingClientRect().top +
         window.scrollY -
-        navbarOffset;
+        offset;
 
       window.scrollTo({
         top: Math.max(0, top),
@@ -269,64 +260,76 @@ export default function Navbar() {
     <>
       {/* WELCOME SCREEN */}
       <AnimatePresence>
-        {showWelcome && (
+        {isLoading && (
           <motion.div
             key="welcome"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{
-              duration: 0.35,
+              duration: reduceMotion
+                ? 0
+                : WELCOME_EXIT_DURATION / 1000,
               ease: "easeOut",
             }}
-            style={{ zIndex: 9999 }}
-            className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-[#0A0A0D] px-6 py-10 text-white select-none"
+            className="fixed inset-0 z-9999 flex items-center justify-center overflow-hidden bg-[#0A0A0D] px-4 py-6 text-white"
           >
             {/* Background glow */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div className="absolute -left-20 top-1/4 h-64 w-64 rounded-full bg-[#B77842]/20 blur-3xl sm:h-96 sm:w-96" />
-
-              <div className="absolute -right-20 bottom-1/4 h-64 w-64 rounded-full bg-[#F5C99F]/15 blur-3xl sm:h-96 sm:w-96" />
+              <div className="absolute -left-20 top-1/4 h-64 w-64 rounded-full bg-[#B77842]/15 blur-3xl sm:h-80 sm:w-80" />
+              <div className="absolute -right-20 bottom-1/4 h-64 w-64 rounded-full bg-[#F5C99F]/10 blur-3xl sm:h-80 sm:w-80" />
             </div>
 
-            <div className="relative z-10 mx-auto flex max-w-lg flex-col items-center text-center">
-              {/* Tagline */}
+            <div className="relative z-10 mx-auto flex w-full max-w-lg flex-col items-center text-center">
+              {/* Badge */}
               <motion.div
-                initial={{ y: -15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.4 }}
-                className="mb-8 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium tracking-widest text-[#F5C99F]"
+                initial={{
+                  opacity: 0,
+                  y: reduceMotion ? 0 : -12,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  duration: reduceMotion ? 0 : 0.4,
+                }}
+                className="mb-6 flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-center text-[10px] font-semibold tracking-widest text-[#F5C99F] sm:mb-8 sm:px-4 sm:text-xs"
               >
                 <Sparkles
                   size={14}
-                  className="text-[#B77842]"
+                  className="shrink-0 text-[#B77842]"
                 />
-
                 <span>RACHIT DEV Web Services</span>
               </motion.div>
 
-              {/* Animated logo */}
+              {/* Animated Logo */}
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{
-                  duration: 0.5,
-                  ease: "easeOut",
+                initial={{
+                  scale: reduceMotion ? 1 : 0.85,
+                  opacity: 0,
                 }}
-                className="relative mb-6 flex items-center justify-center"
+                animate={{
+                  scale: 1,
+                  opacity: 1,
+                }}
+                transition={{
+                  duration: reduceMotion ? 0 : 0.55,
+                  ease,
+                }}
+                className="relative mb-6 flex h-36 w-36 items-center justify-center sm:h-44 sm:w-44"
               >
-                {/* Gold ring */}
                 <motion.svg
                   animate={
                     reduceMotion
-                      ? { rotate: 0 }
+                      ? undefined
                       : { rotate: 360 }
                   }
                   transition={{
                     duration: 18,
-                    repeat: reduceMotion ? 0 : Infinity,
+                    repeat: Infinity,
                     ease: "linear",
                   }}
-                  className="absolute h-40 w-40 text-[#B77842]/80 sm:h-48 sm:w-48"
+                  className="absolute inset-0 h-full w-full text-[#B77842]/80"
                   viewBox="0 0 120 120"
                   aria-hidden="true"
                 >
@@ -341,8 +344,7 @@ export default function Navbar() {
                   />
                 </motion.svg>
 
-                {/* Logo box */}
-                <div className="relative flex h-32 w-32 items-center justify-center rounded-3xl bg-[#FFF9F2] p-4 shadow-[0_0_35px_rgba(245,201,159,0.25)] sm:h-36 sm:w-36">
+                <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl bg-[#FFF9F2] p-4 shadow-[0_0_30px_rgba(245,201,159,0.20)] sm:h-36 sm:w-36">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/weblog.png"
@@ -356,13 +358,19 @@ export default function Navbar() {
 
               {/* Heading */}
               <motion.h1
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{
-                  delay: 0.1,
-                  duration: 0.4,
+                initial={{
+                  opacity: 0,
+                  y: reduceMotion ? 0 : 14,
                 }}
-                className="mb-3 text-3xl font-black tracking-tight text-white sm:text-5xl"
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  delay: reduceMotion ? 0 : 0.1,
+                  duration: reduceMotion ? 0 : 0.45,
+                }}
+                className="mb-3 text-[clamp(1.65rem,5vw,3rem)] font-black leading-tight tracking-tight text-white"
               >
                 Welcome to{" "}
                 <span className="bg-linear-to-r from-[#F5C99F] via-[#B77842] to-[#F5C99F] bg-clip-text text-transparent">
@@ -372,43 +380,63 @@ export default function Navbar() {
 
               {/* Description */}
               <motion.p
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{
-                  delay: 0.2,
-                  duration: 0.4,
+                initial={{
+                  opacity: 0,
+                  y: reduceMotion ? 0 : 12,
                 }}
-                className="mb-10 max-w-md text-sm font-normal tracking-wide text-neutral-400 sm:text-base"
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  delay: reduceMotion ? 0 : 0.18,
+                  duration: reduceMotion ? 0 : 0.45,
+                }}
+                className="mb-8 max-w-md text-sm leading-6 tracking-wide text-neutral-400 sm:mb-10 sm:text-base"
               >
-                Crafting modern, high-performance web solutions &amp; services
+                Crafting modern, high-performance web
+                solutions &amp; services
               </motion.p>
 
-              {/* Loading progress */}
+              {/* Progress */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  delay: 0.25,
-                  duration: 0.4,
+                initial={{
+                  opacity: 0,
+                  scale: reduceMotion ? 1 : 0.95,
                 }}
-                className="flex w-48 flex-col items-center sm:w-56"
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                }}
+                transition={{
+                  delay: reduceMotion ? 0 : 0.25,
+                  duration: reduceMotion ? 0 : 0.35,
+                }}
+                className="flex w-44 flex-col items-center sm:w-56"
               >
-                <div className="mb-2 flex w-full items-center justify-between text-[11px] font-semibold tracking-widest text-neutral-400">
+                <div className="mb-2 flex w-full items-center justify-between text-[11px] font-semibold tracking-widest">
                   <span className="text-[#F5C99F]">
                     LOADING
                   </span>
-
                   <span className="text-[#F5C99F]">
                     {progress}%
                   </span>
                 </div>
 
-                <div className="relative h-1 w-full overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-linear-to-r from-[#B77842] to-[#F5C99F] shadow-[0_0_12px_rgba(245,201,159,0.7)]"
-                    style={{
-                      width: `${progress}%`,
+                <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+                  <motion.div
+                    initial={false}
+                    animate={{
+                      scaleX: progress / 100,
                     }}
+                    transition={{
+                      duration: reduceMotion ? 0 : 0.08,
+                      ease: "linear",
+                    }}
+                    style={{
+                      transformOrigin: "left",
+                    }}
+                    className="h-full w-full rounded-full bg-linear-to-r from-[#B77842] to-[#F5C99F]"
                   />
                 </div>
               </motion.div>
@@ -418,17 +446,26 @@ export default function Navbar() {
       </AnimatePresence>
 
       {/* NAVBAR */}
-      <header className="sticky top-0 z-50 w-full px-3 pt-4 sm:px-6 lg:px-8">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-[#E8DCCF] bg-[#FFFBF7]/95 px-5 py-3 shadow-sm sm:px-7 xl:backdrop-blur-xl">
+      <header
+        ref={headerRef}
+        className="sticky top-0 z-50 w-full px-3 pt-3 sm:px-6 sm:pt-4 lg:px-8"
+      >
+        <nav
+          className={`mx-auto flex w-full max-w-7xl items-center justify-between gap-3 rounded-full border border-[#E8DCCF] px-4 py-2.5 transition-[background-color,box-shadow] duration-300 sm:px-6 lg:px-7 ${
+            scrolled
+              ? "bg-[#FFFBF7] shadow-[0_8px_30px_rgba(45,30,15,0.10)]"
+              : "bg-[#FFFBF7]/95 shadow-sm"
+          }`}
+        >
           {/* Brand */}
           <Link
             href="/#home"
             onClick={(event) =>
               handleNavClick(event, "/#home", "Home")
             }
-            className="group flex min-w-0 items-center gap-3.5"
+            className="group flex min-w-0 items-center gap-2.5 sm:gap-3"
           >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center transition-transform duration-300 group-hover:scale-105 sm:h-14 sm:w-14">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105 sm:h-14 sm:w-14">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/weblog.png"
@@ -440,18 +477,17 @@ export default function Navbar() {
             </div>
 
             <div className="flex min-w-0 flex-col">
-              <strong className="whitespace-nowrap text-base font-extrabold leading-tight tracking-tight text-neutral-900 sm:text-lg">
+              <strong className="whitespace-nowrap text-[15px] font-extrabold leading-tight tracking-tight text-neutral-900 sm:text-lg">
                 Rachix Studio
               </strong>
-
-              <small className="text-[11px] font-semibold text-neutral-500 sm:text-xs">
+              <small className="text-[10px] font-semibold text-neutral-500 sm:text-xs">
                 Web Service
               </small>
             </div>
           </Link>
 
-          {/* Desktop links */}
-          <div className="hidden items-center gap-5 xl:flex 2xl:gap-7">
+          {/* Desktop Navigation */}
+          <div className="hidden items-center gap-1 xl:flex">
             {links.map((link) => {
               const isActive = activeTab === link.name;
 
@@ -466,7 +502,7 @@ export default function Navbar() {
                       link.name
                     )
                   }
-                  className={`relative whitespace-nowrap text-sm font-bold transition-colors ${
+                  className={`relative whitespace-nowrap rounded-full px-3 py-2.5 text-[13px] font-bold transition-colors ${
                     isActive
                       ? "text-neutral-950"
                       : "text-neutral-700 hover:text-neutral-950"
@@ -477,7 +513,7 @@ export default function Navbar() {
                   {isActive && (
                     <motion.span
                       layoutId="active-indicator"
-                      className="absolute -bottom-1.5 left-0 right-0 h-[2.5px] rounded-full bg-neutral-900"
+                      className="absolute -bottom-1.5 left-0 right-0 h-0.5 rounded-full bg-neutral-900"
                       transition={{
                         type: "spring",
                         stiffness: 380,
@@ -490,8 +526,8 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Book a Call */}
-          <div className="hidden items-center gap-3 sm:flex">
+          {/* CTA */}
+          <div className="flex shrink-0 items-center gap-2">
             <Link
               href="/#contact"
               onClick={(event) =>
@@ -501,39 +537,70 @@ export default function Navbar() {
                   "Contact"
                 )
               }
-              className="flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-neutral-800 sm:text-sm"
+              className="hidden items-center gap-2 rounded-full bg-black px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-neutral-800 sm:flex sm:text-sm"
             >
               <CalendarDays
                 size={16}
                 className="text-[#F5C99F]"
               />
-
-              <span>Book a Call</span>
+              Book a Call
             </Link>
-          </div>
 
-          {/* Mobile toggle */}
-          <button
-            type="button"
-            aria-label={open ? "Close menu" : "Open menu"}
-            aria-expanded={open}
-            aria-controls="mobile-nav"
-            onClick={() => setOpen((value) => !value)}
-            className="rounded-full border border-[#E8DCCF] p-2 text-neutral-800 transition-colors hover:bg-[#E8DCCF]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B77842] xl:hidden"
-          >
-            {open ? <X size={20} /> : <Menu size={20} />}
-          </button>
+            {/* Mobile Toggle */}
+            <motion.button
+              type="button"
+              aria-label={
+                open ? "Close menu" : "Open menu"
+              }
+              aria-expanded={open}
+              aria-controls="mobile-nav"
+              onClick={() => setOpen((prev) => !prev)}
+              whileTap={
+                reduceMotion ? undefined : { scale: 0.92 }
+              }
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E8DCCF] bg-[#F8F0E7] text-neutral-800 transition-colors hover:bg-[#EFE2D3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B77842] xl:hidden"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={open ? "close" : "menu"}
+                  initial={{
+                    opacity: 0,
+                    rotate: reduceMotion ? 0 : -45,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    rotate: 0,
+                  }}
+                  exit={{
+                    opacity: 0,
+                    rotate: reduceMotion ? 0 : 45,
+                  }}
+                  transition={{
+                    duration: reduceMotion ? 0 : 0.15,
+                  }}
+                  className="flex items-center justify-center"
+                >
+                  {open ? (
+                    <X size={20} />
+                  ) : (
+                    <Menu size={20} />
+                  )}
+                </motion.span>
+              </AnimatePresence>
+            </motion.button>
+          </div>
         </nav>
 
-        {/* Mobile dropdown */}
+        {/* MOBILE MENU */}
         <AnimatePresence initial={false}>
           {open && (
             <motion.div
               id="mobile-nav"
+              key="mobile-menu"
               initial={{
                 opacity: 0,
                 height: 0,
-                y: -10,
+                y: reduceMotion ? 0 : -8,
               }}
               animate={{
                 opacity: 1,
@@ -543,38 +610,40 @@ export default function Navbar() {
               exit={{
                 opacity: 0,
                 height: 0,
-                y: -10,
+                y: reduceMotion ? 0 : -8,
               }}
               transition={{
                 duration: reduceMotion ? 0 : 0.25,
-                ease: "easeInOut",
+                ease,
               }}
               className="mx-auto mt-2 max-w-7xl overflow-hidden rounded-3xl border border-[#E8DCCF] bg-[#FFFBF7] shadow-xl xl:hidden"
             >
-              <div className="flex flex-col gap-1.5 p-4 sm:p-5">
-                {links.map((link) => (
-                  <Link
-                    key={link.name}
-                    href={link.href}
-                    onClick={(event) =>
-                      handleNavClick(
-                        event,
-                        link.href,
-                        link.name
-                      )
-                    }
-                    className={`rounded-2xl px-4 py-2.5 text-sm font-bold transition-colors ${
-                      activeTab === link.name
-                        ? "bg-[#E8DCCF]/50 text-neutral-950"
-                        : "text-neutral-700 hover:bg-[#E8DCCF]/30"
-                    }`}
-                  >
-                    {link.name}
-                  </Link>
-                ))}
+              <div className="max-h-[min(70dvh,560px)] overflow-y-auto overscroll-contain p-3 sm:p-5">
+                <div className="flex flex-col gap-1">
+                  {links.map((link) => (
+                    <Link
+                      key={link.name}
+                      href={link.href}
+                      onClick={(event) =>
+                        handleNavClick(
+                          event,
+                          link.href,
+                          link.name
+                        )
+                      }
+                      className={`flex min-h-11 items-center rounded-xl px-4 py-3 text-sm font-bold transition-colors ${
+                        activeTab === link.name
+                          ? "bg-[#E8DCCF]/50 text-neutral-950"
+                          : "text-neutral-700 hover:bg-[#E8DCCF]/30"
+                      }`}
+                    >
+                      {link.name}
+                    </Link>
+                  ))}
+                </div>
 
-                {/* Mobile Book a Call */}
-                <div className="mt-2 border-t border-[#E8DCCF] pt-3 sm:hidden">
+                {/* Mobile CTA */}
+                <div className="mt-3 border-t border-[#E8DCCF] pt-3 sm:hidden">
                   <Link
                     href="/#contact"
                     onClick={(event) =>
@@ -584,14 +653,13 @@ export default function Navbar() {
                         "Contact"
                       )
                     }
-                    className="flex w-full items-center justify-center gap-2 rounded-full bg-black px-4 py-3 text-center text-sm font-bold text-white shadow-sm"
+                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-black px-4 py-3 text-center text-sm font-bold text-white"
                   >
                     <CalendarDays
                       size={16}
                       className="text-[#F5C99F]"
                     />
-
-                    <span>Book a Call</span>
+                    Book a Call
                   </Link>
                 </div>
               </div>

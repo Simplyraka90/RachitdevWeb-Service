@@ -1,8 +1,18 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import type { SubmitEvent } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+} from "motion/react";
 import {
   Check,
   UserRound,
@@ -15,15 +25,15 @@ import {
 } from "lucide-react";
 
 type ChatMessage = {
+  id: number;
   sender: "user" | "bot";
   text: string;
 };
 
-type LocalReply = {
-  keywords: string[];
-  reply: string;
-  showOptions?: boolean;
-};
+const DURATION = 0.5;
+const API_TIMEOUT = 8000;
+const WHATSAPP_NUMBER = "918576971890";
+const ease = [0.22, 1, 0.36, 1] as const;
 
 const highlights = [
   "B.Tech Graduate — Computer Science & Design",
@@ -46,70 +56,13 @@ const websiteTypes = [
   "SaaS / Web App",
 ];
 
-const localReplies: LocalReply[] = [
-  {
-    keywords: ["hi", "hii", "hiii", "hy", "hello", "hlo", "hey"],
-    reply:
-      "Hello! 👋 Welcome to Rachix Studio. How can I help you today?",
-  },
-  {
-    keywords: ["good morning", "gm"],
-    reply: "Good morning! ☀️ How can I help you?",
-  },
-  {
-    keywords: ["good afternoon"],
-    reply: "Good afternoon! 😊 How can I assist you?",
-  },
-  {
-    keywords: ["good evening"],
-    reply: "Good evening! 🌆 Welcome to Rachix Studio!",
-  },
-  {
-    keywords: ["how are you", "how r u", "how are u"],
-    reply:
-      "I'm doing great! 😊 Thanks for asking. How can I help?",
-  },
-  {
-    keywords: ["who are you", "your name"],
-    reply:
-      "I'm Rachix Studio AI Assistant 🤖, here to help with professional website design and development services.",
-  },
-  {
-    keywords: ["thank you", "thanks", "thx"],
-    reply: "You're welcome! 😊 Anything else I can help with?",
-  },
-  {
-    keywords: ["ok", "okay"],
-    reply: "Great! 👍 Let me know if you need anything else.",
-  },
-  {
-    keywords: ["bye", "goodbye", "see you"],
-    reply: "Goodbye! 👋 Have a wonderful day!",
-  },
-  {
-    keywords: ["i need a website", "need a website"],
-    reply:
-      "Great! 🚀 What type of website do you need? Choose an option below.",
-    showOptions: true,
-  },
-  {
-    keywords: ["website price", "price", "pricing", "cost"],
-    reply:
-      "Website pricing depends on design, features and project requirements. 💰 What type of website do you need?",
-    showOptions: true,
-  },
-];
-
-const INITIAL_MESSAGE: ChatMessage = {
+const initialMessage: ChatMessage = {
+  id: 0,
   sender: "bot",
-  text:
-    "Hey there! 👋 Welcome to Rachix Studio. How can I help you?",
+  text: "Hey there! 👋 Welcome to Rachix Studio. How can I help you?",
 };
 
-const WHATSAPP_NUMBER = "918576971890";
-const API_TIMEOUT = 8000;
-
-function normalizeText(text: string): string {
+function normalize(text: string) {
   return text
     .toLowerCase()
     .trim()
@@ -117,180 +70,279 @@ function normalizeText(text: string): string {
     .replace(/\s+/g, " ");
 }
 
-function whatsappUrl(message: string): string {
+function getWhatsAppUrl(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
     message
   )}`;
 }
 
-function isWhatsAppIntent(message: string): boolean {
-  const q = normalizeText(message);
+function isContactIntent(text: string) {
+  const q = normalize(text);
 
-  const patterns = [
-    /^(contact|whatsapp|connect me|contact me|call me)$/,
+  return [
+    /^(contact|whatsapp|contact me|call me|connect me)$/,
     /\blet'?s (connect|talk|meet|discuss)\b/,
-    /\b(connect me|connect with you|contact rachit|contact rachix studio)\b/,
-    /\b(book|schedule|arrange|set up)\s+(a\s+)?(call|meeting|consultation)\b/,
-    /\b(how can (we|i)|can we)\s+(connect|meet|talk|contact)\b/,
-    /\b(i want to|i would like to|i'd like to)\s+(connect|meet|talk|contact|hire)\b/,
-    /\b(hire you|hire rachit|hire rachix studio|want to hire you)\b/,
-    /\b(send me|share)\s+(your\s+)?(whatsapp|contact number)\b/,
-    /\bmujhe\s+(aapse\s+)?(baat|contact|connect)\s+karni\s+hai\b/,
-    /\baapse\s+baat\s+karni\s+hai\b/,
-    /\bmeeting\s+(fix|karni)\b/,
-    /\bcall\s+karni\s+hai\b/,
-  ];
-
-  return patterns.some((pattern) => pattern.test(q));
+    /\b(book|schedule|arrange)\s+(a\s+)?(call|meeting)\b/,
+    /\b(hire you|contact rachit|contact rachix)\b/,
+    /\b(mujhe|aapse).*(baat|contact|connect)\b/,
+    /\bcall karni hai\b/,
+  ].some((pattern) => pattern.test(q));
 }
 
-function getSmartLocalReply(message: string): string {
-  const q = normalizeText(message);
+function getLocalReply(query: string): {
+  reply: string;
+  options: boolean;
+} {
+  const q = normalize(query);
 
   if (
-    /price|pricing|cost|budget|charge|kitna|paisa|how much|rate/.test(q)
+    /^(hi|hii|hiii|hello|hey|hlo|hy|good morning|good evening)$/.test(
+      q
+    )
   ) {
-    return "Website pricing depends on the design, number of pages, features and integrations. 💰 Share your project requirements and budget, and our team can discuss a suitable quote on WhatsApp.";
+    return {
+      reply:
+        "Hello! 👋 Welcome to Rachix Studio. How can I help you today?",
+      options: false,
+    };
+  }
+
+  if (/^(thank you|thanks|thx|thankyou)$/.test(q)) {
+    return {
+      reply: "You're welcome! 😊 Anything else I can help with?",
+      options: false,
+    };
+  }
+
+  if (/^(bye|goodbye|see you)$/.test(q)) {
+    return {
+      reply: "Goodbye! 👋 Have a wonderful day!",
+      options: false,
+    };
+  }
+
+  if (/^(who are you|your name)$/.test(q)) {
+    return {
+      reply:
+        "I'm Rachix Studio AI Assistant 🤖. I can help with website development, design and project enquiries.",
+      options: false,
+    };
+  }
+
+  if (
+    /price|pricing|cost|budget|charge|kitna|how much|rate/.test(q)
+  ) {
+    return {
+      reply:
+        "Website pricing depends on design, features and project requirements. 💰 What type of website do you need?",
+      options: true,
+    };
   }
 
   if (/portfolio|personal website|resume website/.test(q)) {
-    return "Absolutely! 🚀 Rachix Studio creates modern, responsive portfolio websites with project showcases, skills, animations and contact forms. Do you need a personal or professional portfolio?";
+    return {
+      reply:
+        "Absolutely! 🚀 We create modern portfolio websites with project showcases, animations and contact forms.",
+      options: false,
+    };
   }
 
-  if (/ecommerce|e-commerce|online store|shopping website/.test(q)) {
-    return "Yes! 🛍️ Rachix Studio can discuss an e-commerce website with product listings, categories, shopping cart and checkout features. What kind of products will you sell?";
+  if (/ecommerce|e-commerce|online store|shopping/.test(q)) {
+    return {
+      reply:
+        "Yes! 🛍️ We can build e-commerce websites with product listings, cart and checkout features. What products will you sell?",
+      options: false,
+    };
   }
 
-  if (/restaurant|cafe|café|food delivery|hotel|resort/.test(q)) {
-    return "Yes! 🍽️ Rachix Studio develops restaurant, café and hospitality websites with menus, galleries, booking inquiry forms and responsive layouts. What features do you need?";
-  }
-
-  if (/business|company|startup|corporate/.test(q)) {
-    return "Rachix Studio creates professional business websites with modern UI, service pages, contact forms and mobile-friendly layouts. What type of business do you run?";
+  if (/restaurant|cafe|café|hotel|resort/.test(q)) {
+    return {
+      reply:
+        "Yes! 🍽️ We develop restaurant and hospitality websites with menus, galleries and booking enquiry features.",
+      options: false,
+    };
   }
 
   if (/seo|google ranking|search engine/.test(q)) {
-    return "Rachix Studio can discuss SEO-friendly website structure, metadata, responsive design and performance optimization. Google rankings cannot be guaranteed. Are you building a new website or improving an existing one?";
+    return {
+      reply:
+        "We offer SEO-friendly website structure, metadata and performance optimization. Search rankings cannot be guaranteed.",
+      options: false,
+    };
   }
 
-  if (/react|nextjs|next.js|typescript|tailwind|technology|tech stack/.test(q)) {
-    return "Rachix Studio uses React.js, Next.js, TypeScript, JavaScript and Tailwind CSS to build fast, responsive and scalable web interfaces. 🚀";
+  if (
+    /react|nextjs|next.js|typescript|tailwind|tech stack/.test(q)
+  ) {
+    return {
+      reply:
+        "We work with React.js, Next.js, TypeScript, JavaScript and Tailwind CSS to build responsive web applications. 🚀",
+      options: false,
+    };
   }
 
-  if (/timeline|delivery|days|weeks|how long|deadline/.test(q)) {
-    return "Project delivery time depends on the number of pages, features and complexity. ⏱️ Share your requirements so our team can discuss a realistic timeline.";
+  if (/timeline|delivery|days|weeks|deadline/.test(q)) {
+    return {
+      reply:
+        "Project delivery time depends on the number of pages and features. Share your requirements to discuss a timeline.",
+      options: false,
+    };
   }
 
-  if (/who is rachit|about rachit|about you|your services|about rachix/.test(q)) {
-    return "Rachix Studio is a professional web design and development service founded by Rachit Rathore, a Frontend Developer and UI/UX Designer. We help clients create professional digital experiences.";
+  if (/about rachit|who is rachit|about rachix/.test(q)) {
+    return {
+      reply:
+        "Rachix Studio is a web design and development service founded by Rachit Rathore, a Frontend Developer and UI/UX Designer.",
+      options: false,
+    };
   }
 
-  if (/website|web development|web app|web application|site/.test(q)) {
-    return "Yes! 💻 Rachix Studio develops responsive websites and modern web applications using React, Next.js, TypeScript and Tailwind CSS. What type of website are you planning?";
+  if (/website|web app|web development|business/.test(q)) {
+    return {
+      reply:
+        "Great! 💻 We develop modern, responsive websites and web applications. What type of website are you planning?",
+      options: true,
+    };
   }
 
-  return "Thanks for your message! 😊 Rachix Studio specializes in professional website development and modern UI/UX. Could you share a little more about your project?";
+  return {
+    reply:
+      "Thanks for your message! 😊 Could you share a little more about your project? I'll help you with the next steps.",
+    options: false,
+  };
 }
 
 export default function About() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [inputVal, setInputVal] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [showWebsiteOptions, setShowWebsiteOptions] = useState(false);
-
   const [messages, setMessages] = useState<ChatMessage[]>([
-    INITIAL_MESSAGE,
+    initialMessage,
   ]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [showWebsiteOptions, setShowWebsiteOptions] =
+    useState(false);
 
-  const chatRef = useRef<HTMLDivElement>(null);
-  const messagesRef = useRef<ChatMessage[]>([INITIAL_MESSAGE]);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const messagesRef = useRef<ChatMessage[]>([
+    initialMessage,
+  ]);
+  const messageIdRef = useRef(1);
   const pendingRef = useRef(false);
-  const abortRef = useRef<AbortController | null>(null);
-  const mountedRef = useRef(true);
+  const requestRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(false);
 
-  const generalWhatsAppUrl = whatsappUrl(
+  const reducedMotion = useReducedMotion();
+  const reduce = Boolean(reducedMotion);
+  const duration = reduce ? 0 : DURATION;
+
+  const whatsappUrl = getWhatsAppUrl(
     "Hello Rachix Studio! I visited your website and would like to discuss a web development project."
   );
 
-  // Cleanup pending requests on unmount
+  // Safe lifecycle cleanup
   useEffect(() => {
     mountedRef.current = true;
 
     return () => {
       mountedRef.current = false;
-      abortRef.current?.abort();
+      requestRef.current?.abort();
     };
   }, []);
 
-  // Efficient chat scrolling
+  // Smooth scrolling inside chat only
   useEffect(() => {
     if (!isChatOpen) return;
 
     const frame = requestAnimationFrame(() => {
-      const container = chatRef.current;
+      const container = chatScrollRef.current;
+      if (!container) return;
 
-      if (container) {
-        container.scrollTop = container.scrollHeight;
-      }
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: reduce ? "instant" : "smooth",
+      });
     });
 
     return () => cancelAnimationFrame(frame);
   }, [
     messages,
     isTyping,
-    showWebsiteOptions,
     isChatOpen,
+    showWebsiteOptions,
+    reduce,
   ]);
 
-  const openWhatsApp = (message: string) => {
+  // Keyboard support
+  useEffect(() => {
+    if (!isChatOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsChatOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isChatOpen]);
+
+  const addMessages = useCallback(
+    (...items: Omit<ChatMessage, "id">[]) => {
+      const nextMessages = items.map((item) => ({
+        ...item,
+        id: messageIdRef.current++,
+      }));
+
+      messagesRef.current = [
+        ...messagesRef.current,
+        ...nextMessages,
+      ];
+
+      if (mountedRef.current) {
+        setMessages(messagesRef.current);
+      }
+    },
+    []
+  );
+
+  const openWhatsApp = useCallback((message: string) => {
     window.open(
-      whatsappUrl(message),
+      getWhatsAppUrl(message),
       "_blank",
       "noopener,noreferrer"
     );
-  };
+  }, []);
 
-  const addMessages = (...newMessages: ChatMessage[]) => {
-    const updated = [
-      ...messagesRef.current,
-      ...newMessages,
-    ];
-
-    messagesRef.current = updated;
-
-    if (mountedRef.current) {
-      setMessages(updated);
-    }
-  };
-
-  const generateBotReply = async (
+  const generateReply = async (
     query: string,
     history: ChatMessage[]
-  ): Promise<string> => {
-    const cleanQuery = normalizeText(query);
+  ) => {
+    const local = getLocalReply(query);
+    const normalized = normalize(query);
 
-    const localMatch = localReplies.find((item) =>
-      item.keywords.some(
-        (keyword) => normalizeText(keyword) === cleanQuery
-      )
-    );
-
-    if (localMatch) {
-      setShowWebsiteOptions(
-        localMatch.showOptions ?? false
+    const immediateReply =
+      /^(hi|hii|hiii|hello|hey|hlo|hy|good morning|good evening|thank you|thanks|thx|thankyou|bye|goodbye|see you|who are you|your name)$/.test(
+        normalized
+      ) ||
+      /^(i need a website|website price|website price?)$/.test(
+        normalized
       );
 
-      return localMatch.reply;
+    if (immediateReply) {
+      if (mountedRef.current) {
+        setShowWebsiteOptions(local.options);
+      }
+      return local.reply;
     }
 
-    setShowWebsiteOptions(false);
-
-    const fallbackReply = getSmartLocalReply(query);
     const controller = new AbortController();
+    requestRef.current = controller;
 
-    abortRef.current = controller;
-
-    const timeout = setTimeout(() => {
+    const timeout = window.setTimeout(() => {
       controller.abort();
     }, API_TIMEOUT);
 
@@ -302,39 +354,52 @@ export default function About() {
         },
         body: JSON.stringify({
           message: query,
-          history: history.slice(-8),
+          history: history.slice(-8).map(
+            ({ sender, text }) => ({
+              sender,
+              text,
+            })
+          ),
         }),
         signal: controller.signal,
         cache: "no-store",
       });
 
       if (!response.ok) {
-        return fallbackReply;
+        throw new Error("Chat API unavailable");
       }
 
-      const data: { reply?: string } | null =
-        await response.json().catch(() => null);
+      const data: { reply?: string } =
+        await response.json();
 
       if (
-        typeof data?.reply === "string" &&
-        data.reply.trim()
+        typeof data.reply !== "string" ||
+        !data.reply.trim()
       ) {
-        return data.reply.trim();
+        throw new Error("Invalid API response");
       }
 
-      return fallbackReply;
+      if (mountedRef.current) {
+        setShowWebsiteOptions(false);
+      }
+
+      return data.reply.trim();
     } catch {
-      return fallbackReply;
+      if (mountedRef.current) {
+        setShowWebsiteOptions(local.options);
+      }
+
+      return local.reply;
     } finally {
       clearTimeout(timeout);
 
-      if (abortRef.current === controller) {
-        abortRef.current = null;
+      if (requestRef.current === controller) {
+        requestRef.current = null;
       }
     }
   };
 
-  const triggerMessage = async (text: string) => {
+  const sendMessage = async (text: string) => {
     const query = text.trim();
 
     if (!query || pendingRef.current) return;
@@ -349,45 +414,33 @@ export default function About() {
       text: query,
     });
 
-    // Direct contact requests
-    if (isWhatsAppIntent(query)) {
+    // Contact enquiry
+    if (isContactIntent(query)) {
       setShowWebsiteOptions(false);
 
       addMessages({
         sender: "bot",
         text:
-          "Of course! 😊 Let's connect on WhatsApp to discuss your project or schedule a meeting.",
+          "Of course! 😊 Let's connect on WhatsApp to discuss your project.",
       });
 
-      const message =
-        `Hello Rachix Studio! 👋\n` +
-        `I visited your website.\n\n` +
-        `I would like to connect with your team.\n\n` +
-        `My message: ${query}`;
-
-      openWhatsApp(message);
+      openWhatsApp(
+        `Hello Rachix Studio! I visited your website.\n\nMy message: ${query}`
+      );
 
       pendingRef.current = false;
-      setIsTyping(false);
       return;
     }
 
     setIsTyping(true);
 
     try {
-      const reply = await generateBotReply(query, history);
+      const reply = await generateReply(query, history);
 
-      if (reply && mountedRef.current) {
-        addMessages({
-          sender: "bot",
-          text: reply,
-        });
-      }
-    } catch {
       if (mountedRef.current) {
         addMessages({
           sender: "bot",
-          text: getSmartLocalReply(query),
+          text: reply,
         });
       }
     } finally {
@@ -399,12 +452,39 @@ export default function About() {
     }
   };
 
-  const handleSend = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void triggerMessage(inputVal);
+    void sendMessage(inputVal);
   };
 
-  const handleWebsiteTypeSelect = (type: string) => {
+  const handleQuickPrompt = (prompt: string) => {
+    if (pendingRef.current) return;
+
+    if (prompt === "Contact") {
+      addMessages(
+        {
+          sender: "user",
+          text: "Contact",
+        },
+        {
+          sender: "bot",
+          text:
+            "Let's connect on WhatsApp! 📱 Share your project requirements there.",
+        }
+      );
+
+      setShowWebsiteOptions(false);
+
+      openWhatsApp(
+        "Hello Rachix Studio! I would like to discuss a project."
+      );
+      return;
+    }
+
+    void sendMessage(prompt);
+  };
+
+  const handleWebsiteType = (type: string) => {
     if (pendingRef.current) return;
 
     addMessages(
@@ -414,7 +494,7 @@ export default function About() {
       },
       {
         sender: "bot",
-        text: `Great choice! 🚀 Let's discuss your ${type} project directly on WhatsApp.`,
+        text: `Great choice! 🚀 Let's discuss your ${type} project on WhatsApp.`,
       }
     );
 
@@ -425,295 +505,429 @@ export default function About() {
     );
   };
 
-  const handleQuickPrompt = (prompt: string) => {
-    if (prompt === "Contact") {
-      addMessages(
-        {
-          sender: "user",
-          text: "Contact",
-        },
-        {
-          sender: "bot",
-          text:
-            "Let's connect on WhatsApp! 📱 You can share your project requirements there.",
-        }
-      );
-
-      setShowWebsiteOptions(false);
-
-      window.open(
-        generalWhatsAppUrl,
-        "_blank",
-        "noopener,noreferrer"
-      );
-
-      return;
-    }
-
-    void triggerMessage(prompt);
-  };
+  const reveal = (delay = 0, y = 18) => ({
+    initial: reduce
+      ? false
+      : { opacity: 0, y },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: {
+      once: true,
+      amount: 0.1,
+    },
+    transition: {
+      duration,
+      delay: reduce ? 0 : delay,
+      ease,
+    },
+  });
 
   return (
     <section
       id="about"
-      className="relative flex h-full min-w-0 w-full flex-col justify-between overflow-hidden rounded-3xl border border-[#E8D6C4] bg-[#FFF7EF] p-5 text-[#111111] sm:p-8"
+      className="relative flex h-full w-full min-w-0 scroll-mt-28 flex-col justify-between overflow-hidden rounded-3xl border border-[#E8D6C4] bg-[#FFF7EF] p-4 text-[#111111] shadow-sm sm:p-6 md:p-8"
     >
+      {/* BACKGROUND */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#F5C99F]/10 blur-3xl"
+      />
+
       {/* ABOUT CONTENT */}
-      <div className="min-w-0">
+      <div className="relative z-10 min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#F5C99F] px-4 py-2 text-xs font-bold">
+          <motion.span
+            {...reveal(0.03, 10)}
+            className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#F5C99F] px-4 py-2 text-xs font-bold shadow-sm"
+          >
             <Sparkles size={14} />
             About Me
-          </span>
+          </motion.span>
 
-          <button
+          <motion.button
             type="button"
-            onClick={() => setIsChatOpen((prev) => !prev)}
+            onClick={() =>
+              setIsChatOpen((previous) => !previous)
+            }
             aria-expanded={isChatOpen}
             aria-controls="rachix-chat-panel"
-            className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2 text-xs font-semibold text-[#F5C99F] transition-colors duration-200 hover:bg-[#292929]"
+            whileHover={
+              reduce ? undefined : { scale: 1.04 }
+            }
+            whileTap={
+              reduce ? undefined : { scale: 0.96 }
+            }
+            transition={{
+              duration: reduce ? 0 : 0.2,
+            }}
+            className="inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-full bg-[#111111] px-4 py-2 text-xs font-semibold text-[#F5C99F] shadow-sm transition-colors hover:bg-[#292929] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
           >
             <Bot size={16} />
             {isChatOpen ? "Close Chat" : "Ask AI"}
-          </button>
+          </motion.button>
         </div>
 
-        <h2 className="mt-6 text-2xl font-extrabold leading-tight tracking-tight sm:text-3xl lg:text-4xl">
+        <motion.h2
+          {...reveal(0.08)}
+          className="mt-6 wrap-break-word text-[clamp(1.5rem,3.5vw,2.4rem)] font-extrabold leading-tight tracking-tight"
+        >
           Hi, I&apos;m Rachit Rathore 👋
-        </h2>
+        </motion.h2>
 
-        <p className="mt-5 max-w-xl text-sm leading-7 text-neutral-600 sm:text-base sm:leading-8">
+        <motion.p
+          {...reveal(0.12)}
+          className="mt-4 max-w-xl text-sm leading-7 text-neutral-600 sm:mt-5 sm:text-base sm:leading-8"
+        >
           A Frontend Developer and UI/UX Designer who
           loves building modern, scalable, and
           user-friendly web experiences. I focus on
           clean UI, performance, and real-world solutions
           that help businesses grow online.
-        </p>
+        </motion.p>
 
-        <ul className="mt-7 space-y-4">
-          {highlights.map((item) => (
-            <li
+        <ul className="mt-6 space-y-3 sm:mt-7 sm:space-y-4">
+          {highlights.map((item, index) => (
+            <motion.li
               key={item}
+              {...reveal(0.16 + index * 0.05, 12)}
               className="flex min-w-0 items-start gap-3"
             >
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#111111] text-white">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#111111] text-white shadow-sm">
                 <Check size={16} />
               </span>
 
-              <span className="min-w-0 text-sm font-semibold leading-6 text-[#222222]">
+              <span className="min-w-0 wrap-break-word text-sm font-semibold leading-6 text-[#222222]">
                 {item}
               </span>
-            </li>
+            </motion.li>
           ))}
         </ul>
       </div>
 
-      {/* CHAT / CONTACT BANNER */}
-      <div className="relative mt-8 min-w-0 overflow-hidden rounded-2xl border border-[#F0D1B3] bg-gradient-to-br from-[#FCE5D0] to-[#F5C99F] p-4 sm:p-5">
-        {/* Decorative background */}
-        <div className="pointer-events-none absolute -right-12 -top-16 size-44 rounded-full bg-white/30" />
+      {/* CHAT AREA */}
+      <motion.div
+        {...reveal(0.12)}
+        className="relative z-10 mt-8 min-w-0 overflow-hidden rounded-2xl border border-[#F0D1B3] bg-linear-to-br from-[#FCE5D0] to-[#F5C99F] p-3 sm:p-5"
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/30"
+        />
 
-        {isChatOpen ? (
-          <div
-            id="rachix-chat-panel"
-            className="relative z-10 min-w-0"
-          >
-            {/* CHAT HEADER */}
-            <div className="flex items-center justify-between gap-2 border-b border-black/10 pb-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#111111] text-[#F5C99F]">
-                  <Bot size={20} />
+        <AnimatePresence mode="wait" initial={false}>
+          {isChatOpen ? (
+            <motion.div
+              key="chat"
+              id="rachix-chat-panel"
+              initial={
+                reduce
+                  ? false
+                  : { opacity: 0, y: 12 }
+              }
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              exit={
+                reduce
+                  ? { opacity: 0 }
+                  : { opacity: 0, y: -10 }
+              }
+              transition={{
+                duration,
+                ease,
+              }}
+              onAnimationComplete={() => {
+                inputRef.current?.focus({
+                  preventScroll: true,
+                });
+              }}
+              className="relative z-10 min-w-0"
+            >
+              {/* CHAT HEADER */}
+              <div className="flex min-w-0 items-center justify-between gap-2 border-b border-black/10 pb-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#111111] text-[#F5C99F] shadow-sm">
+                    <Bot size={20} />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h3 className="truncate text-xs font-extrabold sm:text-sm">
+                      Rachix Studio AI Assistant
+                    </h3>
+
+                    <p className="flex items-center gap-1.5 text-[10px] text-neutral-700">
+                      <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                      Virtual Assistant
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Contact on WhatsApp"
+                    className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-lg bg-[#111111] text-[#25D366] transition-colors hover:bg-[#333333]"
+                  >
+                    <MessageCircle size={18} />
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsChatOpen(false)}
+                    aria-label="Close chat"
+                    className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-lg border border-black/10 transition-colors hover:bg-white/50"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* CHAT MESSAGES */}
+              <div
+                ref={chatScrollRef}
+                role="log"
+                aria-live="polite"
+                aria-label="Chat conversation"
+                className="my-3 flex h-52 min-h-0 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-contain pr-1 sm:h-56 lg:h-60"
+                style={{
+                  WebkitOverflowScrolling: "touch",
+                  scrollbarWidth: "thin",
+                }}
+              >
+                {messages.map((message) => (
+                  <motion.div
+                    key={message.id}
+                    initial={
+                      reduce
+                        ? false
+                        : {
+                            opacity: 0,
+                            y: 8,
+                          }
+                    }
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    transition={{
+                      duration,
+                      ease,
+                    }}
+                    className={`flex shrink-0 ${
+                      message.sender === "user"
+                        ? "justify-end"
+                        : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[90%] whitespace-pre-wrap wrap-break-word rounded-2xl px-3 py-2.5 text-xs leading-5 shadow-sm sm:max-w-[85%] ${
+                        message.sender === "user"
+                          ? "rounded-br-sm bg-[#111111] text-white"
+                          : "rounded-bl-sm border border-white/60 bg-white/90 text-[#222222]"
+                      }`}
+                    >
+                      {message.text}
+                    </div>
+                  </motion.div>
+                ))}
+
+                {/* TYPING INDICATOR */}
+                {isTyping && (
+                  <motion.div
+                    role="status"
+                    initial={
+                      reduce
+                        ? false
+                        : { opacity: 0, y: 8 }
+                    }
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    transition={{ duration }}
+                    className="flex w-fit shrink-0 items-center gap-2 self-start rounded-2xl bg-white/90 px-3 py-2.5 text-xs text-neutral-600 shadow-sm"
+                  >
+                    <Bot size={14} />
+                    <span>Assistant is typing</span>
+
+                    <span className="flex gap-1">
+                      {[0, 1, 2].map((dot) => (
+                        <motion.span
+                          key={dot}
+                          animate={
+                            reduce
+                              ? undefined
+                              : {
+                                  opacity: [0.3, 1, 0.3],
+                                }
+                          }
+                          transition={{
+                            duration: 1,
+                            repeat: Infinity,
+                            delay: dot * 0.15,
+                          }}
+                          className="h-1.5 w-1.5 rounded-full bg-[#B87A48]"
+                        />
+                      ))}
+                    </span>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* QUICK PROMPTS */}
+              <div className="mb-3 flex flex-wrap gap-2">
+                {(showWebsiteOptions
+                  ? websiteTypes
+                  : quickPrompts
+                ).map((item) => (
+                  <motion.button
+                    key={item}
+                    type="button"
+                    disabled={isTyping}
+                    onClick={() => {
+                      if (showWebsiteOptions) {
+                        handleWebsiteType(item);
+                      } else {
+                        handleQuickPrompt(item);
+                      }
+                    }}
+                    whileTap={
+                      reduce
+                        ? undefined
+                        : { scale: 0.96 }
+                    }
+                    className={`min-h-9 touch-manipulation rounded-full px-3 py-2 text-[11px] font-semibold transition-colors disabled:opacity-50 ${
+                      showWebsiteOptions
+                        ? "bg-[#111111] text-[#F5C99F] hover:bg-[#333333]"
+                        : "border border-black/10 bg-white/80 text-[#111111] hover:bg-white"
+                    }`}
+                  >
+                    {item}
+                  </motion.button>
+                ))}
+              </div>
+
+              {/* INPUT */}
+              <form
+                onSubmit={handleSubmit}
+                className="flex min-w-0 items-center gap-2"
+              >
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputVal}
+                  maxLength={1000}
+                  disabled={isTyping}
+                  onChange={(event) =>
+                    setInputVal(event.target.value)
+                  }
+                  placeholder="Ask me anything..."
+                  aria-label="Type your message"
+                  className="min-h-11 min-w-0 flex-1 rounded-xl border border-black/10 bg-white px-3 py-3 text-base text-[#111111] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-neutral-500 focus:border-[#C68B58] focus:ring-2 focus:ring-[#C68B58]/20 disabled:opacity-60"
+                />
+
+                <motion.button
+                  type="submit"
+                  disabled={isTyping || !inputVal.trim()}
+                  aria-label="Send message"
+                  whileTap={
+                    reduce
+                      ? undefined
+                      : { scale: 0.92 }
+                  }
+                  className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl bg-[#111111] text-[#F5C99F] transition-colors hover:bg-[#333333] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Send size={17} />
+                </motion.button>
+              </form>
+
+              <p className="mt-3 text-center text-[10px] leading-5 text-neutral-600">
+                AI responses may contain mistakes.
+                Confirm project details directly.
+              </p>
+            </motion.div>
+          ) : (
+            /* CONTACT BANNER */
+            <motion.div
+              key="contact"
+              initial={
+                reduce
+                  ? false
+                  : { opacity: 0, y: 10 }
+              }
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              exit={
+                reduce
+                  ? { opacity: 0 }
+                  : { opacity: 0, y: -10 }
+              }
+              transition={{
+                duration,
+                ease,
+              }}
+              className="relative z-10 flex min-w-0 flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-white/70 bg-[#111111] shadow-md sm:h-16 sm:w-16">
+                  <UserRound
+                    size={30}
+                    className="text-[#F5C99F]"
+                  />
+
+                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#111111] bg-emerald-500" />
                 </div>
 
                 <div className="min-w-0">
-                  <h3 className="truncate text-xs font-extrabold sm:text-sm">
-                    Rachix Studio AI Assistant
+                  <h3 className="text-sm font-extrabold">
+                    Let&apos;s Build Together
                   </h3>
 
-                  <p className="flex items-center gap-1.5 text-[10px] text-neutral-700">
-                    <span className="size-2 rounded-full bg-emerald-600" />
-                    Virtual Assistant
+                  <p className="mt-1 text-xs leading-5 text-neutral-700">
+                    Have a project in mind? Let&apos;s talk.
                   </p>
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
-                <a
-                  href={generalWhatsAppUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Contact on WhatsApp"
-                  className="flex size-8 items-center justify-center rounded-lg bg-[#111111] text-[#25D366] transition-colors hover:bg-[#333333]"
-                >
-                  <MessageCircle size={17} />
-                </a>
-
-                <button
-                  type="button"
-                  onClick={() => setIsChatOpen(false)}
-                  aria-label="Close chat"
-                  className="flex size-8 items-center justify-center rounded-lg border border-black/10 transition-colors hover:bg-white/50"
-                >
-                  <X size={17} />
-                </button>
-              </div>
-            </div>
-
-            {/* CHAT MESSAGES */}
-            <div
-              ref={chatRef}
-              role="log"
-              aria-live="polite"
-              aria-label="Chat conversation"
-              className="my-3 flex h-40 min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain pr-1 sm:h-44"
-              style={{
-                WebkitOverflowScrolling: "touch",
-              }}
-            >
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${
-                    message.sender === "user"
-                      ? "justify-end"
-                      : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[88%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-xs leading-5 shadow-sm ${
-                      message.sender === "user"
-                        ? "rounded-br-sm bg-[#111111] text-white"
-                        : "rounded-bl-sm border border-white/60 bg-white/90 text-[#222222]"
-                    }`}
-                  >
-                    {message.text}
-                  </div>
-                </div>
-              ))}
-
-              {isTyping && (
-                <div
-                  role="status"
-                  className="self-start rounded-2xl bg-white/90 px-3 py-2 text-xs text-neutral-600"
-                >
-                  Assistant is typing...
-                </div>
-              )}
-            </div>
-
-            {/* QUICK OPTIONS */}
-            {showWebsiteOptions ? (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {websiteTypes.map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    disabled={isTyping}
-                    onClick={() =>
-                      handleWebsiteTypeSelect(type)
-                    }
-                    className="rounded-lg bg-[#111111] px-3 py-1.5 text-[11px] font-semibold text-[#F5C99F] transition-colors hover:bg-[#333333] disabled:opacity-50"
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {quickPrompts.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    disabled={isTyping}
-                    onClick={() =>
-                      handleQuickPrompt(prompt)
-                    }
-                    className="rounded-full border border-black/10 bg-white/80 px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-white disabled:opacity-50"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* INPUT */}
-            <form
-              onSubmit={handleSend}
-              className="flex min-w-0 items-center gap-2"
-            >
-              <input
-                type="text"
-                value={inputVal}
-                maxLength={1000}
-                disabled={isTyping}
-                onChange={(event) =>
-                  setInputVal(event.target.value)
+              <motion.a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={
+                  reduce
+                    ? undefined
+                    : { scale: 1.03 }
                 }
-                placeholder="Ask me anything..."
-                aria-label="Type your message"
-                className="min-w-0 flex-1 rounded-xl border border-black/10 bg-white px-3 py-3 text-base text-[#111111] outline-none transition-colors placeholder:text-neutral-500 focus:border-[#C68B58] focus:ring-2 focus:ring-[#C68B58]/20 disabled:opacity-60"
-              />
-
-              <button
-                type="submit"
-                disabled={isTyping || !inputVal.trim()}
-                aria-label="Send message"
-                className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#111111] text-[#F5C99F] transition-colors hover:bg-[#333333] disabled:cursor-not-allowed disabled:opacity-50"
+                whileTap={
+                  reduce
+                    ? undefined
+                    : { scale: 0.97 }
+                }
+                transition={{
+                  duration: reduce ? 0 : 0.2,
+                }}
+                className="group inline-flex min-h-11 w-full shrink-0 touch-manipulation items-center justify-center gap-2 rounded-xl bg-[#111111] px-4 py-3 text-xs font-bold text-white shadow-md transition-colors hover:bg-[#333333] sm:w-auto"
               >
-                <Send size={17} />
-              </button>
-            </form>
-
-            <p className="mt-2 text-center text-[10px] text-neutral-600">
-              AI responses may contain mistakes.
-              Confirm project details directly.
-            </p>
-          </div>
-        ) : (
-          /* ORIGINAL CONTACT BANNER */
-          <div className="relative z-10 flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="relative flex size-14 shrink-0 items-center justify-center rounded-full border-4 border-white/70 bg-[#111111] shadow-md sm:size-16">
-                <UserRound
-                  size={30}
-                  className="text-[#F5C99F]"
+                <MessageCircle
+                  size={17}
+                  className="text-[#25D366]"
                 />
 
-                <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-[#111111] bg-emerald-500" />
-              </div>
+                Connect on WhatsApp
 
-              <div className="min-w-0">
-                <h3 className="text-sm font-extrabold">
-                  Let&apos;s Build Together
-                </h3>
-
-                <p className="mt-1 text-xs leading-5 text-neutral-700">
-                  Have a project in mind? Let&apos;s talk.
-                </p>
-              </div>
-            </div>
-
-            <a
-              href={generalWhatsAppUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#111111] px-4 py-3 text-xs font-bold text-white shadow-md transition-colors hover:bg-[#333333] sm:w-auto"
-            >
-              <MessageCircle
-                size={17}
-                className="text-[#25D366]"
-              />
-
-              Connect on WhatsApp
-
-              <ArrowUpRight
-                size={15}
-                className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
-            </a>
-          </div>
-        )}
-      </div>
+                <ArrowUpRight
+                  size={15}
+                  className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+              </motion.a>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </section>
   );
 }

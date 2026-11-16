@@ -7,7 +7,11 @@ import {
   useRef,
   useState,
 } from "react";
-
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+} from "motion/react";
 import {
   Atom,
   Bot,
@@ -256,38 +260,50 @@ export const metadata = {
   },
 ];
 
-const AUTO_CHANGE_MS = 4000;
+// Auto change every 0.5 seconds
+const AUTO_CHANGE_MS = 500;
+const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function TechStack() {
   const [activeTab, setActiveTab] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return typeof IntersectionObserver === "undefined";
+  });
   const [isAutoPaused, setIsAutoPaused] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const sectionRef = useRef<HTMLElement>(null);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
+  const copyTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+
+  const reducedMotion = useReducedMotion();
+  const reduce = Boolean(reducedMotion);
 
   const activeSkill = tech[activeTab];
   const ActiveIcon = activeSkill.icon;
 
-  // Only run auto-switching when section is visible.
+  // Detect section visibility without setting state synchronously in an effect body.
   useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    if (typeof IntersectionObserver === "undefined") {
+    if (
+      typeof window === "undefined" ||
+      typeof IntersectionObserver === "undefined"
+    ) {
       return;
     }
+
+    const section = sectionRef.current;
+    if (!section) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsVisible(entry.isIntersecting);
       },
-      {
-        threshold: 0.05,
-      }
+      { threshold: 0.05 }
     );
 
     observer.observe(section);
@@ -295,26 +311,24 @@ export default function TechStack() {
     return () => observer.disconnect();
   }, []);
 
-  // Respect reduced-motion preferences.
+  // Auto-switch only when visible and not paused
   useEffect(() => {
-    const media = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    );
-
-    if (media.matches) return;
-
-    if (!isVisible || isAutoPaused) return;
+    if (!isVisible || isAutoPaused || reduce) return;
 
     const timer = window.setInterval(() => {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible") {
+        return;
+      }
 
-      setActiveTab((previous) => (previous + 1) % tech.length);
+      setActiveTab(
+        (previous) => (previous + 1) % tech.length
+      );
     }, AUTO_CHANGE_MS);
 
     return () => window.clearInterval(timer);
-  }, [isVisible, isAutoPaused]);
+  }, [isVisible, isAutoPaused, reduce]);
 
-  // Clear copy feedback timer.
+  // Cleanup
   useEffect(() => {
     return () => {
       if (copyTimerRef.current !== null) {
@@ -335,7 +349,10 @@ export default function TechStack() {
         throw new Error("Clipboard API unavailable");
       }
 
-      await navigator.clipboard.writeText(activeSkill.code);
+      await navigator.clipboard.writeText(
+        activeSkill.code
+      );
+
       setCopied(true);
 
       if (copyTimerRef.current !== null) {
@@ -350,13 +367,26 @@ export default function TechStack() {
     }
   };
 
+  const reveal = (delay = 0) => ({
+    initial: reduce
+      ? false
+      : { opacity: 0, y: 18 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, amount: 0.1 },
+    transition: {
+      duration: reduce ? 0 : 0.5,
+      delay: reduce ? 0 : delay,
+      ease,
+    },
+  });
+
   return (
     <section
       ref={sectionRef}
       id="tech-stack"
-      className="relative isolate w-full min-w-0 scroll-mt-20 overflow-hidden bg-[#FFFBF7] px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
+      className="relative isolate w-full min-w-0 scroll-mt-28 overflow-hidden bg-[#FFFBF7] px-4 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24"
     >
-      {/* BACKGROUND WAVES */}
+      {/* Background */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
@@ -372,9 +402,8 @@ export default function TechStack() {
           />
         </svg>
 
-        {/* Lightweight radial glow */}
         <div
-          className="absolute left-1/2 top-1/2 h-[350px] w-[350px] -translate-x-1/2 -translate-y-1/2 rounded-full sm:h-[600px] sm:w-[600px]"
+          className="absolute left-1/2 top-1/2 h-87.5 w-87.5 -translate-x-1/2 -translate-y-1/2 rounded-full sm:h-150 sm:w-150"
           style={{
             background:
               "radial-gradient(circle, rgba(245,201,159,0.2) 0%, transparent 70%)",
@@ -383,43 +412,69 @@ export default function TechStack() {
       </div>
 
       <div className="relative mx-auto w-full max-w-7xl min-w-0">
-        {/* HEADING */}
+        {/* Heading */}
         <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
-          <span className="inline-flex rounded-full bg-[#F5C99F] px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-900 shadow-sm">
-            Digital Expertise &amp; Stack
-          </span>
+          <motion.div {...reveal(0)}>
+            <span className="inline-flex rounded-full bg-[#F5C99F] px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-neutral-900 shadow-sm">
+              Digital Expertise &amp; Stack
+            </span>
+          </motion.div>
 
-          <h2 className="mt-3.5 text-3xl font-extrabold tracking-tight text-neutral-900 sm:text-4xl lg:text-5xl">
+          <motion.h2
+            {...reveal(0.06)}
+            className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900 sm:text-4xl lg:text-5xl"
+          >
             Interactive Core Engine
-          </h2>
+          </motion.h2>
 
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-neutral-600 sm:text-base">
+          <motion.p
+            {...reveal(0.12)}
+            className="mx-auto mt-3 max-w-xl text-sm leading-7 text-neutral-600 sm:text-base"
+          >
             Explore the technologies and skills behind our
             modern, responsive web experiences.
-          </p>
+          </motion.p>
         </div>
 
-        {/* MAIN GRID */}
-        <div className="grid min-w-0 grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12">
-          {/* LEFT ORBIT */}
-          <div className="flex w-full min-w-0 flex-col items-center justify-center">
-            {/* Responsive orbit without ResizeObserver */}
-            <div className="relative flex aspect-square w-full max-w-[464px] items-center justify-center">
-              {/* OUTER CIRCLE */}
-              <div className="relative flex aspect-square w-[70%] max-w-[400px] items-center justify-center rounded-full border-2 border-dashed border-[#D9C3B0] bg-white/20 sm:w-[76%] lg:w-[82%]">
-                {/* INNER RING */}
+        {/* Main layout */}
+        <div className="grid min-w-0 grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
+          {/* Orbit */}
+          <motion.div
+            {...reveal(0.05)}
+            className="flex w-full min-w-0 flex-col items-center justify-center"
+          >
+            <div className="relative flex aspect-square w-full max-w-116 items-center justify-center">
+              {/* Outer ring */}
+              <div className="relative flex aspect-square w-[70%] max-w-100 items-center justify-center rounded-full border-2 border-dashed border-[#D9C3B0] bg-white/20 sm:w-[76%] lg:w-[82%]">
+                {/* Inner ring */}
                 <div className="pointer-events-none absolute inset-[22%] rounded-full border border-[#E8D6C4]" />
 
-                {/* CORE */}
-                <div className="relative z-10 flex size-18 flex-col items-center justify-center rounded-full border-[3px] border-[#F5C99F]/60 bg-neutral-900 text-white shadow-xl sm:size-22 lg:size-26">
-                  <Cpu className="size-6 text-[#F5C99F] sm:size-7" />
-
+                {/* Core */}
+                <motion.div
+                  animate={
+                    reduce
+                      ? undefined
+                      : {
+                          boxShadow: [
+                            "0 0 0 0 rgba(245,201,159,0.12)",
+                            "0 0 0 12px rgba(245,201,159,0)",
+                          ],
+                        }
+                  }
+                  transition={{
+                    duration: 2.4,
+                    repeat: Infinity,
+                    ease: "easeOut",
+                  }}
+                  className="relative z-10 flex h-18 w-18 flex-col items-center justify-center rounded-full border-[3px] border-[#F5C99F]/60 bg-neutral-900 text-white shadow-xl sm:h-22 sm:w-22 lg:h-26 lg:w-26"
+                >
+                  <Cpu className="h-6 w-6 text-[#F5C99F] sm:h-7 sm:w-7" />
                   <span className="mt-1 font-mono text-[9px] font-bold tracking-widest text-[#F5C99F]">
                     CORE
                   </span>
-                </div>
+                </motion.div>
 
-                {/* ORBIT ICONS */}
+                {/* Technology orbit buttons */}
                 {tech.map((item, index) => {
                   const Icon = item.icon;
                   const isActive = activeTab === index;
@@ -444,61 +499,92 @@ export default function TechStack() {
                         top: `${y}%`,
                         transform: "translate(-50%, -50%)",
                       }}
-                      className={`group absolute flex size-9 touch-manipulation items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B87A48] min-[400px]:size-10 sm:size-11 lg:size-12 ${
+                      className={`group absolute flex h-9 w-9 touch-manipulation items-center justify-center rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B87A48] min-[400px]:h-10 min-[400px]:w-10 sm:h-11 sm:w-11 lg:h-12 lg:w-12 ${
                         isActive ? "z-30" : "z-20"
                       }`}
                     >
-                      <span
-                        className={`relative flex size-full items-center justify-center rounded-xl border shadow-sm transition-colors duration-200 sm:rounded-2xl ${
+                      <motion.span
+                        animate={{
+                          scale: isActive && !reduce ? 1.1 : 1,
+                        }}
+                        transition={{
+                          duration: reduce ? 0 : 0.2,
+                          ease,
+                        }}
+                        className={`relative flex h-full w-full items-center justify-center rounded-xl border shadow-sm transition-colors duration-200 sm:rounded-2xl ${
                           isActive
                             ? "border-[#F5C99F] bg-neutral-900 text-[#F5C99F] ring-[3px] ring-[#F5C99F]/50"
                             : "border-[#E8D6C4] bg-[#FFF7EF] text-neutral-800 group-hover:border-[#D8A878] group-hover:bg-white"
                         }`}
                       >
-                        <Icon className="size-4 sm:size-5" />
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
 
                         {isActive && (
-                          <span className="absolute -right-1 -top-1 size-2.5 rounded-full border-2 border-white bg-[#F5C99F]" />
+                          <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#F5C99F]" />
                         )}
-                      </span>
+                      </motion.span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* ACTIVE SKILL LABEL */}
-            <div className="mt-4 flex min-h-[64px] w-full max-w-[260px] flex-col items-center justify-center rounded-2xl border border-[#E8D6C4] bg-white/95 px-4 py-2.5 text-center shadow-sm">
-              <div className="flex items-center justify-center gap-2">
-                <ActiveIcon className="size-4 shrink-0 text-[#B87A48]" />
-
-                <span className="text-sm font-bold text-neutral-900 sm:text-base">
-                  {activeSkill.name}
-                </span>
-              </div>
-
-              <p className="mt-0.5 text-[11px] text-neutral-500">
-                {activeSkill.subtitle}
-              </p>
-            </div>
-          </div>
-
-          {/* RIGHT TERMINAL */}
-          <div className="w-full min-w-0">
-            <div className="relative overflow-hidden rounded-2xl border-[3px] border-neutral-900 bg-[#0D1117] shadow-xl sm:rounded-3xl sm:border-[6px]">
-              {/* TERMINAL HEADER */}
-              <div className="relative z-20 flex min-w-0 items-center justify-between gap-2 border-b border-white/10 bg-[#161B22] px-3.5 py-3 sm:px-5 sm:py-3.5">
-                <div className="flex min-w-0 items-center gap-2">
-                  {/* WINDOW CONTROLS */}
-                  <div className="flex shrink-0 gap-1.5">
-                    <span className="size-2.5 rounded-full bg-red-500" />
-                    <span className="size-2.5 rounded-full bg-yellow-500" />
-                    <span className="size-2.5 rounded-full bg-green-500" />
+            {/* Active skill label */}
+            <div
+              aria-live={isAutoPaused ? "polite" : "off"}
+              className="mt-4 flex min-h-17 w-full max-w-65 flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#E8D6C4] bg-white/95 px-4 py-2.5 text-center shadow-sm"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={activeSkill.id}
+                  initial={
+                    reduce
+                      ? false
+                      : { opacity: 0, y: 5 }
+                  }
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={
+                    reduce
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: -5 }
+                  }
+                  transition={{
+                    duration: reduce ? 0 : 0.12,
+                  }}
+                  className="flex flex-col items-center"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <ActiveIcon className="h-4 w-4 shrink-0 text-[#B87A48]" />
+                    <span className="text-sm font-bold text-neutral-900 sm:text-base">
+                      {activeSkill.name}
+                    </span>
                   </div>
 
-                  {/* FILE NAME */}
+                  <p className="mt-1 text-[11px] text-neutral-500">
+                    {activeSkill.subtitle}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </motion.div>
+
+          {/* Terminal */}
+          <motion.div
+            {...reveal(0.1)}
+            className="w-full min-w-0"
+          >
+            <div className="relative overflow-hidden rounded-2xl border-[3px] border-neutral-900 bg-[#0D1117] shadow-xl sm:rounded-3xl sm:border-[6px]">
+              {/* Terminal header */}
+              <div className="relative z-20 flex min-w-0 items-center justify-between gap-2 border-b border-white/10 bg-[#161B22] px-3.5 py-3 sm:px-5 sm:py-3.5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex shrink-0 gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+                  </div>
+
                   <div className="ml-1 flex min-w-0 items-center gap-1.5 rounded-md border border-white/5 bg-black/40 px-2 py-1 font-mono text-[10px] text-gray-300 sm:ml-3 sm:px-3 sm:text-xs">
-                    <Terminal className="size-3 shrink-0 text-[#F5C99F]" />
+                    <Terminal className="h-3 w-3 shrink-0 text-[#F5C99F]" />
 
                     <span className="truncate">
                       {activeSkill.id}.enterprise.ts
@@ -506,7 +592,6 @@ export default function TechStack() {
                   </div>
                 </div>
 
-                {/* EXPERIENCE & COPY */}
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="hidden rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-[#F5C99F] sm:inline-flex">
                     {activeSkill.experience} Exp
@@ -518,12 +603,12 @@ export default function TechStack() {
                     aria-label={
                       copied ? "Code copied" : "Copy code"
                     }
-                    className="flex min-h-10 touch-manipulation cursor-pointer items-center gap-1 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
+                    className="flex min-h-10 touch-manipulation cursor-pointer items-center gap-1 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F5C99F]"
                   >
                     {copied ? (
-                      <CheckCircle2 className="size-3.5 text-green-400" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
                     ) : (
-                      <Copy className="size-3.5" />
+                      <Copy className="h-3.5 w-3.5" />
                     )}
 
                     <span className="hidden sm:inline">
@@ -533,28 +618,49 @@ export default function TechStack() {
                 </div>
               </div>
 
-              {/* TERMINAL BODY */}
-              <div className="relative min-h-[260px] min-w-0 overflow-hidden p-4 font-mono text-[11px] leading-relaxed text-gray-200 sm:min-h-[300px] sm:p-6 sm:text-xs">
-                {/* ACTIVE TECHNOLOGY ICON */}
+              {/* Terminal body */}
+              <div className="relative min-h-75 min-w-0 overflow-hidden p-4 font-mono text-[11px] leading-relaxed text-gray-200 sm:min-h-85 sm:p-6 sm:text-xs">
+                {/* Active technology icon */}
                 <div className="pointer-events-none absolute right-3 top-3 z-10 sm:right-5 sm:top-5">
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-2 shadow-lg sm:rounded-2xl sm:p-2.5">
+                  <div className="rounded-xl border border-white/10 bg-[#161B22] p-2 shadow-lg sm:rounded-2xl sm:p-2.5">
                     <ActiveIcon
-                      className={`size-5 sm:size-7 ${activeSkill.color}`}
+                      className={`h-5 w-5 sm:h-7 sm:w-7 ${activeSkill.color}`}
                     />
                   </div>
                 </div>
 
-                {/* CODE PREVIEW */}
+                {/* Animated code preview */}
                 <div className="relative z-0 min-w-0 pr-8 sm:pr-10">
-                  <pre className="max-w-full overflow-x-auto whitespace-pre font-mono text-[10px] font-medium tracking-wide sm:text-xs">
-                    <code>{activeSkill.code}</code>
-                  </pre>
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={activeSkill.id}
+                      initial={
+                        reduce
+                          ? false
+                          : { opacity: 0, y: 8 }
+                      }
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={
+                        reduce
+                          ? { opacity: 0 }
+                          : { opacity: 0, y: -8 }
+                      }
+                      transition={{
+                        duration: reduce ? 0 : 0.12,
+                        ease: "easeOut",
+                      }}
+                    >
+                      <pre className="max-w-full overflow-x-auto whitespace-pre font-mono text-[10px] font-medium tracking-wide sm:text-xs">
+                        <code>{activeSkill.code}</code>
+                      </pre>
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
 
-                {/* STATUS FOOTER */}
+                {/* Status footer */}
                 <div className="relative z-10 mt-5 flex min-w-0 items-center justify-between gap-2 border-t border-white/10 pt-3 font-sans">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="size-2.5 shrink-0 rounded-full border border-[#F5C99F] bg-[#F5C99F]/30" />
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full border border-[#F5C99F] bg-[#F5C99F]/30" />
 
                     <span className="truncate text-xs font-bold text-white sm:text-sm">
                       {activeSkill.name}
@@ -566,13 +672,13 @@ export default function TechStack() {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] text-green-400 sm:text-[11px]">
-                    <span className="size-2 rounded-full bg-green-400" />
+                    <span className="h-2 w-2 rounded-full bg-green-400" />
                     <span>Online</span>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

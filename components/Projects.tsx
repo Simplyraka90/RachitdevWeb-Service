@@ -4,6 +4,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+} from "motion/react";
+import {
   ArrowUpRight,
   ChevronDown,
   ChevronUp,
@@ -100,70 +105,90 @@ const projects: Project[] = [
   },
 ];
 
+const ease = [0.22, 1, 0.36, 1] as const;
+
 function ProjectPreview({
   project,
+  reduceMotion,
 }: {
   project: Project;
+  reduceMotion: boolean;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <div
-      className={`relative aspect-[16/10] min-w-0 overflow-hidden rounded-[20px] bg-gradient-to-br ${project.gradient}`}
+      className={`relative aspect-16/10 min-w-0 overflow-hidden rounded-[20px] bg-linear-to-br ${project.gradient}`}
     >
-      {/* LIGHTWEIGHT DECORATIVE BACKGROUND */}
+      {/* Decorative shapes */}
       <div className="pointer-events-none absolute -left-12 top-1/4 h-48 w-48 rounded-full bg-white/10" />
-
       <div className="pointer-events-none absolute -right-10 bottom-0 h-44 w-44 rounded-full bg-white/10" />
 
-      {/* BROWSER PREVIEW FRAME */}
-      <div className="absolute inset-x-5 bottom-0 top-7 overflow-hidden rounded-t-xl border border-white/30 bg-white/95 shadow-[0_20px_60px_rgba(0,0,0,0.18)] transition-transform duration-200 motion-safe:group-hover:-translate-y-1 sm:inset-x-7 sm:top-9">
-        {/* BROWSER HEADER */}
+      {/* Browser frame */}
+      <motion.div
+        whileHover={
+          reduceMotion ? undefined : { y: -4 }
+        }
+        transition={{
+          duration: 0.25,
+          ease,
+        }}
+        className="absolute inset-x-4 bottom-0 top-6 overflow-hidden rounded-t-xl border border-white/30 bg-white/95 shadow-[0_20px_50px_rgba(0,0,0,0.16)] sm:inset-x-7 sm:top-9"
+      >
+        {/* Browser header */}
         <div className="flex h-8 items-center gap-1.5 border-b border-black/10 bg-[#F7F7F7] px-3">
           <span className="h-2 w-2 shrink-0 rounded-full bg-[#FF6B6B]" />
           <span className="h-2 w-2 shrink-0 rounded-full bg-[#FFC75F]" />
           <span className="h-2 w-2 shrink-0 rounded-full bg-[#5FCB80]" />
 
           <div className="mx-auto max-w-[55%] truncate rounded-md bg-white px-3 py-1 text-[9px] text-neutral-500">
-            {project.name.toLowerCase().replaceAll(" ", "-")}
+            {project.name
+              .toLowerCase()
+              .replaceAll(" ", "-")}
           </div>
         </div>
 
-        {/* WEBSITE IMAGE */}
-        {!imageFailed ? (
-          <Image
-            src={project.image}
-            alt={`${project.name} website preview`}
-            fill
-            sizes="(max-width: 767px) 90vw, (max-width: 1279px) 45vw, 30vw"
-            loading="lazy"
-            onError={() => setImageFailed(true)}
-            className="!top-8 !h-[calc(100%-32px)] object-cover object-top"
-          />
-        ) : (
-          <div
-            className={`flex h-[calc(100%-32px)] flex-col justify-center bg-gradient-to-br ${project.gradient} px-5 sm:px-7`}
-          >
-            <span className="mb-3 text-[9px] font-bold uppercase tracking-[0.25em] text-neutral-700">
-              {project.category}
-            </span>
+        {/* Project screenshot */}
+        <div className="relative h-[calc(100%-32px)] w-full overflow-hidden">
+          {!imageFailed ? (
+            <Image
+              src={project.image}
+              alt={`${project.name} website preview`}
+              fill
+              sizes="(max-width: 767px) 90vw, (max-width: 1279px) 45vw, 30vw"
+              loading="lazy"
+              onError={() => setImageFailed(true)}
+              className={`object-cover object-top ${
+                reduceMotion
+                  ? ""
+                  : "transition-transform duration-500 ease-out motion-safe:group-hover:scale-[1.04]"
+              }`}
+            />
+          ) : (
+            <div
+              className={`flex h-full flex-col justify-center bg-linear-to-br ${project.gradient} px-5 sm:px-7`}
+            >
+              <span className="mb-3 text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-700">
+                {project.category}
+              </span>
 
-            <h4 className="max-w-[90%] text-2xl font-black tracking-tight text-[#171717] sm:text-3xl">
-              {project.name}
-            </h4>
+              <h4 className="max-w-[90%] text-xl font-black tracking-tight text-[#171717] sm:text-3xl">
+                {project.name}
+              </h4>
 
-            <div className="mt-4 h-2 w-28 rounded-full bg-black/15" />
-            <div className="mt-2 h-2 w-20 rounded-full bg-black/10" />
+              <div className="mt-4 h-2 w-28 rounded-full bg-black/15" />
+              <div className="mt-2 h-2 w-20 rounded-full bg-black/10" />
 
-            <div className="mt-5 w-fit rounded-full bg-[#171717] px-4 py-2 text-[10px] font-semibold text-white">
-              Explore Project ↗
+              <div className="mt-5 w-fit rounded-full bg-[#171717] px-4 py-2 text-[10px] font-semibold text-white">
+                Explore Project ↗
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </motion.div>
 
-      {/* PREVIEW CORNER ICON */}
-      <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#171717] shadow-sm transition-transform duration-200 motion-safe:group-hover:rotate-45">
+      {/* Corner icon */}
+      <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#171717] shadow-sm transition-transform duration-300 motion-safe:group-hover:rotate-45">
         <ArrowUpRight size={17} />
       </div>
     </div>
@@ -172,18 +197,49 @@ function ProjectPreview({
 
 function ProjectCard({
   project,
+  index,
+  reduceMotion,
 }: {
   project: Project;
+  index: number;
+  reduceMotion: boolean;
 }) {
   const message = encodeURIComponent(
     `Hi Rachit, I want a website similar to ${project.name}. Please share the details.`
   );
 
   return (
-    <article className="group flex h-full min-w-0 flex-col rounded-[28px] border border-[#EBD8C7] bg-[#FFF8F1] p-3.5 shadow-[0_8px_30px_rgba(79,47,23,0.025)] transition-[border-color,box-shadow] duration-200 hover:border-[#E7B68C] hover:shadow-[0_18px_50px_rgba(79,47,23,0.08)] sm:p-4">
-      <ProjectPreview project={project} />
+    <motion.article
+      layout={!reduceMotion}
+      initial={
+        reduceMotion
+          ? false
+          : { opacity: 0, y: 24 }
+      }
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{
+        once: true,
+        amount: 0.1,
+      }}
+      transition={{
+        duration: reduceMotion ? 0 : 0.5,
+        delay: reduceMotion
+          ? 0
+          : (index % 3) * 0.07,
+        ease,
+        layout: {
+          duration: 0.3,
+          ease,
+        },
+      }}
+      className="group flex h-full min-w-0 flex-col rounded-[28px] border border-[#EBD8C7] bg-[#FFF8F1] p-3.5 shadow-[0_8px_30px_rgba(79,47,23,0.025)] transition-[border-color,box-shadow] duration-300 hover:border-[#E7B68C] hover:shadow-[0_18px_45px_rgba(79,47,23,0.08)] sm:p-4"
+    >
+      <ProjectPreview
+        project={project}
+        reduceMotion={reduceMotion}
+      />
 
-      {/* CARD CONTENT */}
+      {/* Card content */}
       <div className="flex min-w-0 flex-1 flex-col px-1 pb-1 pt-5 sm:px-2">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.17em] text-[#A47C5C]">
@@ -195,15 +251,15 @@ function ProjectCard({
           </span>
         </div>
 
-        <h3 className="text-[22px] font-black tracking-tight text-[#171717] sm:text-[26px]">
+        <h3 className="text-[22px] font-black leading-tight tracking-tight text-[#171717] sm:text-[26px]">
           {project.name}
         </h3>
 
-        <p className="mt-2.5 text-xs leading-relaxed text-[#66615D] sm:text-sm">
+        <p className="mt-3 text-xs leading-6 text-[#66615D] sm:text-sm">
           {project.description}
         </p>
 
-        {/* TECH STACK */}
+        {/* Tech stack */}
         <div className="mt-4 flex flex-wrap gap-1.5">
           {project.tech.map((tech) => (
             <span
@@ -215,41 +271,63 @@ function ProjectCard({
           ))}
         </div>
 
-        {/* ACTION BUTTONS */}
+        {/* Action buttons */}
         <div className="mt-auto grid grid-cols-1 gap-2 pt-6 min-[400px]:grid-cols-2">
           {project.url ? (
-            <a
+            <motion.a
               href={project.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-xl bg-[#171717] px-3 text-center text-xs font-bold text-white transition-colors duration-200 hover:bg-[#35302D] sm:text-sm"
+              whileHover={
+                reduceMotion
+                  ? undefined
+                  : { scale: 1.025 }
+              }
+              whileTap={
+                reduceMotion
+                  ? undefined
+                  : { scale: 0.98 }
+              }
+              className="flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-xl bg-[#171717] px-3 text-center text-xs font-bold text-white transition-colors hover:bg-[#35302D] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717] sm:text-sm"
             >
               Live Preview
               <ExternalLink size={14} />
-            </a>
+            </motion.a>
           ) : (
-            <span className="flex min-h-11 items-center justify-center rounded-xl border border-[#E5D5C8] bg-[#F2E8DE] px-3 text-center text-xs font-semibold text-[#8A7869]">
+            <span className="flex min-h-11 items-center justify-center rounded-xl border border-[#E5D5C8] bg-[#F2E8DE] px-3 text-xs font-semibold text-[#8A7869]">
               Coming Soon
             </span>
           )}
 
-          <a
+          <motion.a
             href={`https://wa.me/${PHONE}?text=${message}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex min-h-11 touch-manipulation items-center justify-center gap-1.5 rounded-xl border border-[#171717] px-2 text-center text-xs font-bold text-[#171717] transition-colors duration-200 hover:bg-[#F5C99F] sm:text-sm"
+            whileHover={
+              reduceMotion
+                ? undefined
+                : { scale: 1.025 }
+            }
+            whileTap={
+              reduceMotion
+                ? undefined
+                : { scale: 0.98 }
+            }
+            className="flex min-h-11 touch-manipulation items-center justify-center gap-1.5 rounded-xl border border-[#171717] px-2 text-center text-xs font-bold text-[#171717] transition-colors hover:bg-[#F5C99F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717] sm:text-sm"
           >
-            <span>Similar Site</span>
+            Similar Site
             <ArrowUpRight size={14} />
-          </a>
+          </motion.a>
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
 export default function Projects() {
   const [showAll, setShowAll] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const reduceMotion = Boolean(reducedMotion);
 
   const visibleProjects = showAll
     ? projects
@@ -258,9 +336,9 @@ export default function Projects() {
   return (
     <section
       id="projects"
-      className="relative w-full min-w-0 scroll-mt-20 overflow-hidden bg-[#FFFBF7] pb-20 pt-12 sm:pb-24 sm:pt-16 lg:pb-28 lg:pt-20"
+      className="relative w-full min-w-0 scroll-mt-28 overflow-hidden bg-[#FFFBF7] pb-20 pt-14 sm:pb-24 sm:pt-20 lg:pb-28 lg:pt-24"
     >
-      {/* LIGHTWEIGHT BACKGROUND DECORATIONS */}
+      {/* Background decorations */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-40 top-20 h-80 w-80 rounded-full bg-[#F5C99F]/5"
@@ -272,58 +350,154 @@ export default function Projects() {
       />
 
       <div className="relative mx-auto w-full max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
-        {/* SECTION HEADER */}
+        {/* Header */}
         <div className="mx-auto mb-12 max-w-3xl text-center sm:mb-14">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#F5C99F] px-4 py-1.5 text-xs font-bold text-[#171717] shadow-sm">
-            <Sparkles size={14} />
-            OUR WORK
-          </span>
+          <motion.div
+            initial={
+              reduceMotion
+                ? false
+                : { opacity: 0, y: 12 }
+            }
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{
+              duration: reduceMotion ? 0 : 0.45,
+              ease,
+            }}
+          >
+            <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#F5C99F] px-4 py-2 text-xs font-bold text-[#171717] shadow-sm">
+              <Sparkles size={14} />
+              OUR WORK
+            </span>
+          </motion.div>
 
-          <h2 className="text-3xl font-black tracking-tight text-[#171717] sm:text-4xl lg:text-5xl">
+          <motion.h2
+            initial={
+              reduceMotion
+                ? false
+                : { opacity: 0, y: 18 }
+            }
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{
+              duration: reduceMotion ? 0 : 0.55,
+              delay: reduceMotion ? 0 : 0.08,
+              ease,
+            }}
+            className="text-3xl font-black tracking-tight text-[#171717] sm:text-4xl lg:text-5xl"
+          >
             Our{" "}
             <span className="relative inline-block">
               Work
               <span className="absolute -bottom-1.5 -z-10 left-0 h-2 w-full rounded-full bg-[#F5C99F]/70" />
             </span>
-          </h2>
+          </motion.h2>
 
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#69635F] sm:text-base">
+          <motion.p
+            initial={
+              reduceMotion
+                ? false
+                : { opacity: 0, y: 14 }
+            }
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{
+              duration: reduceMotion ? 0 : 0.5,
+              delay: reduceMotion ? 0 : 0.15,
+              ease,
+            }}
+            className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[#69635F] sm:text-base"
+          >
             Explore the websites we&apos;ve built for
             different businesses, combining creative design,
             modern technology and seamless user experiences.
-          </p>
+          </motion.p>
         </div>
 
-        {/* PROJECTS GRID */}
-        <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {visibleProjects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-            />
-          ))}
-        </div>
+        {/* Projects grid */}
+        <motion.div
+          layout={!reduceMotion}
+          className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3"
+        >
+          <AnimatePresence initial={false}>
+            {visibleProjects.map((project, index) => (
+              <motion.div
+                key={project.id}
+                layout={!reduceMotion}
+                initial={
+                  reduceMotion
+                    ? false
+                    : { opacity: 0, y: 20 }
+                }
+                animate={{ opacity: 1, y: 0 }}
+                exit={
+                  reduceMotion
+                    ? { opacity: 0 }
+                    : {
+                        opacity: 0,
+                        y: -12,
+                        scale: 0.98,
+                      }
+                }
+                transition={{
+                  duration: reduceMotion ? 0 : 0.3,
+                  delay: reduceMotion
+                    ? 0
+                    : index >= 3
+                      ? (index - 3) * 0.06
+                      : 0,
+                  ease,
+                  layout: {
+                    duration: 0.3,
+                    ease,
+                  },
+                }}
+                className="min-w-0"
+              >
+                <ProjectCard
+                  project={project}
+                  index={index}
+                  reduceMotion={reduceMotion}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
 
-        {/* VIEW MORE / SHOW LESS BUTTON */}
+        {/* Explore More / Show Less */}
         <div className="mt-12 flex justify-center">
-          <button
+          <motion.button
             type="button"
             onClick={() => setShowAll((prev) => !prev)}
             aria-expanded={showAll}
-            className="group inline-flex min-h-12 touch-manipulation cursor-pointer items-center justify-center gap-2.5 rounded-full border border-[#171717] bg-[#171717] px-7 py-3 text-xs font-bold text-white shadow-md transition-colors duration-200 hover:bg-[#F5C99F] hover:text-[#171717] sm:text-sm"
+            aria-controls="projects-grid"
+            whileHover={
+              reduceMotion
+                ? undefined
+                : { y: -2, scale: 1.02 }
+            }
+            whileTap={
+              reduceMotion
+                ? undefined
+                : { scale: 0.97 }
+            }
+            transition={{
+              duration: 0.2,
+            }}
+            className="group inline-flex min-h-12 touch-manipulation cursor-pointer items-center justify-center gap-2.5 rounded-full border border-[#171717] bg-[#171717] px-7 py-3 text-xs font-bold text-white shadow-md transition-colors hover:bg-[#F5C99F] hover:text-[#171717] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717] sm:text-sm"
           >
             {showAll ? (
               <>
-                <span>Show Less Work</span>
+                Show Less Work
                 <ChevronUp size={17} />
               </>
             ) : (
               <>
-                <span>Explore More Work</span>
+                Explore More Work
                 <ChevronDown size={17} />
               </>
             )}
-          </button>
+          </motion.button>
         </div>
       </div>
     </section>
