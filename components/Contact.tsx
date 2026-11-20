@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { SubmitEvent } from "react";
+import type { FormEvent } from "react";
 import {
   AnimatePresence,
   motion,
@@ -15,7 +15,11 @@ import {
   Loader2,
   ArrowRight,
   ChevronDown,
+  Mail,
+  ExternalLink,
 } from "lucide-react";
+
+const CONTACT_EMAIL = "rachixstudio@gmail.com";
 
 const types = [
   "Custom Website",
@@ -49,7 +53,9 @@ const inputStyle =
   "block w-full min-w-0 rounded-xl border border-white/15 bg-[#282828] px-4 py-3.5 text-base text-white outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-neutral-400 focus:border-[#F5C99F] focus:ring-2 focus:ring-[#F5C99F]/20 disabled:cursor-not-allowed disabled:opacity-60";
 
 export default function Contact() {
-  const [form, setForm] = useState<ContactFormData>(initialForm);
+  const [form, setForm] =
+    useState<ContactFormData>(initialForm);
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -85,7 +91,7 @@ export default function Contact() {
   };
 
   const handleSubmit = async (
-    event: SubmitEvent<HTMLFormElement>
+    event: FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
 
@@ -119,7 +125,9 @@ export default function Contact() {
       const data: {
         success?: boolean;
         error?: string;
-      } | null = await response.json().catch(() => null);
+      } | null = await response
+        .json()
+        .catch(() => null);
 
       if (!response.ok || data?.success !== true) {
         throw new Error(
@@ -171,7 +179,7 @@ export default function Contact() {
 
   const reveal = (delay = 0, y = 20) => ({
     initial: reduce
-      ? false
+      ? (false as const)
       : { opacity: 0, y },
     whileInView: { opacity: 1, y: 0 },
     viewport: {
@@ -194,7 +202,6 @@ export default function Contact() {
       id="contact"
       className="relative flex h-full w-full min-w-0 scroll-mt-28 flex-col overflow-hidden rounded-3xl bg-[#111111] p-5 text-white shadow-xl sm:p-7 md:p-8"
     >
-      {/* Subtle background decoration */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[#F5C99F]/5 blur-3xl"
@@ -224,7 +231,7 @@ export default function Contact() {
               duration,
               ease,
             }}
-            className="relative z-10 flex min-h-105 min-w-0 flex-1 flex-col items-center justify-center py-8 text-center"
+            className="relative z-10 flex min-h-[420px] min-w-0 flex-1 flex-col items-center justify-center py-8 text-center"
           >
             <motion.div
               initial={
@@ -287,7 +294,7 @@ export default function Contact() {
               transition={{
                 duration: reduce ? 0 : 0.2,
               }}
-              className="mt-8 inline-flex min-h-12 touch-manipulation cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#F5C99F] px-6 py-3.5 text-sm font-bold text-black transition-colors hover:bg-[#F8D8B8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F5C99F]"
+              className="mt-8 inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#F5C99F] px-6 py-3.5 text-sm font-bold text-black transition-colors hover:bg-[#F8D8B8]"
             >
               Submit Another Inquiry
               <ArrowRight size={17} />
@@ -313,7 +320,6 @@ export default function Contact() {
             }}
             className="relative z-10 flex min-w-0 flex-1 flex-col"
           >
-            {/* HEADER */}
             <div className="min-w-0">
               <motion.span
                 {...reveal(0.03, 10)}
@@ -336,14 +342,28 @@ export default function Contact() {
                 Tell me about your idea and let&apos;s
                 build something great.
               </motion.p>
+
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="mt-5 inline-flex max-w-full items-center gap-2 rounded-xl border border-[#F5C99F]/20 bg-[#F5C99F]/10 px-4 py-3 text-sm font-semibold text-[#F5C99F] transition-colors hover:bg-[#F5C99F]/20"
+              >
+                <Mail size={17} className="shrink-0" />
+
+                <span className="min-w-0 break-all">
+                  {CONTACT_EMAIL}
+                </span>
+
+                <ExternalLink
+                  size={14}
+                  className="shrink-0"
+                />
+              </a>
             </div>
 
-            {/* FORM */}
             <form
               onSubmit={handleSubmit}
               className="mt-7 flex min-w-0 flex-1 flex-col gap-4"
             >
-              {/* NAME AND EMAIL */}
               <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                 <motion.div
                   {...reveal(0.16, 12)}
@@ -409,7 +429,6 @@ export default function Contact() {
                 </motion.div>
               </div>
 
-              {/* PROJECT TYPE */}
               <motion.div
                 {...reveal(0.24, 12)}
                 className="min-w-0"
@@ -467,7 +486,6 @@ export default function Contact() {
                 </div>
               </motion.div>
 
-              {/* PROJECT DETAILS */}
               <motion.div
                 {...reveal(0.28, 12)}
                 className="flex min-w-0 flex-1 flex-col"
@@ -499,7 +517,6 @@ export default function Contact() {
                 />
               </motion.div>
 
-              {/* ERROR */}
               <AnimatePresence initial={false}>
                 {error && (
                   <motion.p
@@ -530,14 +547,13 @@ export default function Contact() {
                       className="mt-0.5 shrink-0"
                     />
 
-                    <span className="min-w-0 wrap-break-word">
+                    <span className="min-w-0 break-words">
                       {error}
                     </span>
                   </motion.p>
                 )}
               </AnimatePresence>
 
-              {/* SUBMIT */}
               <motion.button
                 type="submit"
                 disabled={loading}
@@ -553,7 +569,7 @@ export default function Contact() {
                 transition={{
                   duration: reduce ? 0 : 0.2,
                 }}
-                className="mt-1 flex min-h-12 w-full touch-manipulation cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#F5C99F] px-6 py-4 text-sm font-bold text-black transition-colors hover:bg-[#F8D8B8] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F5C99F]"
+                className="mt-1 flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#F5C99F] px-6 py-4 text-sm font-bold text-black transition-colors hover:bg-[#F8D8B8] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? (
                   <>
