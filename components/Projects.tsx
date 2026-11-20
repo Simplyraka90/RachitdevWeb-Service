@@ -103,10 +103,49 @@ const projects: Project[] = [
     gradient: "from-[#24334A] via-[#4B6D89] to-[#A9C6DA]",
     accent: "#E7F5FF",
   },
+
+  // NEW PROJECT 7 - AURA 3D CAFE
+  {
+    id: 7,
+    name: "Aura 3D Café",
+    category: "Interactive 3D Café Website",
+    description:
+      "An immersive café website featuring premium UI, interactive 3D visuals, smooth animations, responsive layouts and a modern menu experience.",
+    tech: [
+      "Next.js",
+      "TypeScript",
+      "Three.js",
+      "3D Animation",
+    ],
+    image: "/7.png",
+    url: "https://auram3dcafee.vercel.app/",
+    gradient: "from-[#3A241F] via-[#855A43] to-[#E8C5A4]",
+    accent: "#F8DCC4",
+  },
+
+  // NEW PROJECT 8 - FURNIVERSE 3D
+  {
+    id: 8,
+    name: "FurniVerse 3D",
+    category: "3D Furniture E-Commerce",
+    description:
+      "A premium 3D furniture shopping experience featuring an animated sofa, interactive product customization, furniture collections, shopping cart, wishlist, reviews and a demo admin dashboard.",
+    tech: [
+      "Next.js",
+      "TypeScript",
+      "React Three Fiber",
+      "Tailwind CSS",
+    ],
+    image: "/8.png",
+    url: "https://furniversein.vercel.app/",
+    gradient: "from-[#D9C8B5] via-[#F7F3ED] to-[#B8896A]",
+    accent: "#694731",
+  },
 ];
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+// PROJECT PREVIEW
 function ProjectPreview({
   project,
   reduceMotion,
@@ -120,11 +159,11 @@ function ProjectPreview({
     <div
       className={`relative aspect-16/10 min-w-0 overflow-hidden rounded-[20px] bg-linear-to-br ${project.gradient}`}
     >
-      {/* Decorative shapes */}
+      {/* Background decorations */}
       <div className="pointer-events-none absolute -left-12 top-1/4 h-48 w-48 rounded-full bg-white/10" />
       <div className="pointer-events-none absolute -right-10 bottom-0 h-44 w-44 rounded-full bg-white/10" />
 
-      {/* Browser frame */}
+      {/* Browser preview frame */}
       <motion.div
         whileHover={
           reduceMotion ? undefined : { y: -4 }
@@ -135,7 +174,7 @@ function ProjectPreview({
         }}
         className="absolute inset-x-4 bottom-0 top-6 overflow-hidden rounded-t-xl border border-white/30 bg-white/95 shadow-[0_20px_50px_rgba(0,0,0,0.16)] sm:inset-x-7 sm:top-9"
       >
-        {/* Browser header */}
+        {/* Browser top bar */}
         <div className="flex h-8 items-center gap-1.5 border-b border-black/10 bg-[#F7F7F7] px-3">
           <span className="h-2 w-2 shrink-0 rounded-full bg-[#FF6B6B]" />
           <span className="h-2 w-2 shrink-0 rounded-full bg-[#FFC75F]" />
@@ -148,9 +187,9 @@ function ProjectPreview({
           </div>
         </div>
 
-        {/* Project screenshot */}
+        {/* Screenshot or fallback */}
         <div className="relative h-[calc(100%-32px)] w-full overflow-hidden">
-          {!imageFailed ? (
+          {project.image && !imageFailed ? (
             <Image
               src={project.image}
               alt={`${project.name} website preview`}
@@ -187,7 +226,7 @@ function ProjectPreview({
         </div>
       </motion.div>
 
-      {/* Corner icon */}
+      {/* Arrow icon */}
       <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#171717] shadow-sm transition-transform duration-300 motion-safe:group-hover:rotate-45">
         <ArrowUpRight size={17} />
       </div>
@@ -195,6 +234,7 @@ function ProjectPreview({
   );
 }
 
+// PROJECT CARD
 function ProjectCard({
   project,
   index,
@@ -239,7 +279,7 @@ function ProjectCard({
         reduceMotion={reduceMotion}
       />
 
-      {/* Card content */}
+      {/* Project content */}
       <div className="flex min-w-0 flex-1 flex-col px-1 pb-1 pt-5 sm:px-2">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.17em] text-[#A47C5C]">
@@ -259,7 +299,7 @@ function ProjectCard({
           {project.description}
         </p>
 
-        {/* Tech stack */}
+        {/* Technologies */}
         <div className="mt-4 flex flex-wrap gap-1.5">
           {project.tech.map((tech) => (
             <span
@@ -273,6 +313,7 @@ function ProjectCard({
 
         {/* Action buttons */}
         <div className="mt-auto grid grid-cols-1 gap-2 pt-6 min-[400px]:grid-cols-2">
+          {/* Live preview */}
           {project.url ? (
             <motion.a
               href={project.url}
@@ -299,6 +340,7 @@ function ProjectCard({
             </span>
           )}
 
+          {/* WhatsApp enquiry */}
           <motion.a
             href={`https://wa.me/${PHONE}?text=${message}`}
             target="_blank"
@@ -324,8 +366,10 @@ function ProjectCard({
   );
 }
 
+// MAIN PROJECTS SECTION
 export default function Projects() {
   const [showAll, setShowAll] = useState(false);
+
   const reducedMotion = useReducedMotion();
   const reduceMotion = Boolean(reducedMotion);
 
@@ -338,7 +382,7 @@ export default function Projects() {
       id="projects"
       className="relative w-full min-w-0 scroll-mt-28 overflow-hidden bg-[#FFFBF7] pb-20 pt-14 sm:pb-24 sm:pt-20 lg:pb-28 lg:pt-24"
     >
-      {/* Background decorations */}
+      {/* Background decoration */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-40 top-20 h-80 w-80 rounded-full bg-[#F5C99F]/5"
@@ -350,7 +394,7 @@ export default function Projects() {
       />
 
       <div className="relative mx-auto w-full max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        {/* Heading */}
         <div className="mx-auto mb-12 max-w-3xl text-center sm:mb-14">
           <motion.div
             initial={
@@ -416,6 +460,7 @@ export default function Projects() {
 
         {/* Projects grid */}
         <motion.div
+          id="projects-grid"
           layout={!reduceMotion}
           className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3"
         >
@@ -468,7 +513,9 @@ export default function Projects() {
         <div className="mt-12 flex justify-center">
           <motion.button
             type="button"
-            onClick={() => setShowAll((prev) => !prev)}
+            onClick={() =>
+              setShowAll((prev) => !prev)
+            }
             aria-expanded={showAll}
             aria-controls="projects-grid"
             whileHover={
