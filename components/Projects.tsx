@@ -117,7 +117,7 @@ const projects: Project[] = [
       "Three.js",
       "3D Animation",
     ],
-    image: "/7.png",
+    image: "/8.png",
     url: "https://auram3dcafee.vercel.app/",
     gradient: "from-[#3A241F] via-[#855A43] to-[#E8C5A4]",
     accent: "#F8DCC4",
@@ -136,11 +136,28 @@ const projects: Project[] = [
       "React Three Fiber",
       "Tailwind CSS",
     ],
-    image: "/8.png",
+    image: "/7.png",
     url: "https://furniversein.vercel.app/",
     gradient: "from-[#D9C8B5] via-[#F7F3ED] to-[#B8896A]",
     accent: "#694731",
   },
+  {
+  id: 9,
+  name: "Auraad Hotel",
+  category: "Luxury Hotel & Resort",
+  description:
+    "A cinematic luxury hotel website featuring an elegant emerald-and-gold design, immersive 3D visuals, room showcases, booking enquiries and a demo admin dashboard.",
+  tech: [
+    "Next.js",
+    "TypeScript",
+    "Three.js",
+    "Tailwind CSS",
+  ],
+  image: "/9.png",
+  url: "https://auraadhotelweb.vercel.app/",
+  gradient: "from-[#123D35] via-[#2D6858] to-[#D4B77A]",
+  accent: "#F7E5B6",
+},
 ];
 
 const ease = [0.22, 1, 0.36, 1] as const;
