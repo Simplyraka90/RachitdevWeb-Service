@@ -6,16 +6,18 @@ import {
   useEffect,
   useRef,
   useState,
+  type FormEvent,
 } from "react";
-import type { SubmitEvent } from "react";
+
 import {
   AnimatePresence,
   motion,
   useReducedMotion,
 } from "motion/react";
+
 import {
   Check,
-  UserRound,
+  Users,
   Bot,
   Send,
   X,
@@ -36,10 +38,10 @@ const WHATSAPP_NUMBER = "918576971890";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const highlights = [
-  "B.Tech Graduate — Computer Science & Design",
-  "Frontend Developer | React.js & Next.js",
-  "7 Months of Professional Experience",
+  "1.5+ Years of Hands-on Experience",
   "30+ Projects Successfully Completed",
+  "Dedicated UI/UX & Web Development Team",
+  "Complete Web Solutions for Every Business",
 ];
 
 const quickPrompts = [
@@ -59,7 +61,8 @@ const websiteTypes = [
 const initialMessage: ChatMessage = {
   id: 0,
   sender: "bot",
-  text: "Hey there! 👋 Welcome to Rachix Studio. How can I help you?",
+  text:
+    "Hello! 👋 Welcome to Rachix Studio. We're a creative web design and development team. How can we help your business today?",
 };
 
 function normalize(text: string) {
@@ -102,21 +105,23 @@ function getLocalReply(query: string): {
   ) {
     return {
       reply:
-        "Hello! 👋 Welcome to Rachix Studio. How can I help you today?",
+        "Hello! 👋 Welcome to Rachix Studio. How can our team help you today?",
       options: false,
     };
   }
 
   if (/^(thank you|thanks|thx|thankyou)$/.test(q)) {
     return {
-      reply: "You're welcome! 😊 Anything else I can help with?",
+      reply:
+        "You're welcome! 😊 Is there anything else our team can help you with?",
       options: false,
     };
   }
 
   if (/^(bye|goodbye|see you)$/.test(q)) {
     return {
-      reply: "Goodbye! 👋 Have a wonderful day!",
+      reply:
+        "Goodbye! 👋 Thank you for visiting Rachix Studio.",
       options: false,
     };
   }
@@ -124,25 +129,39 @@ function getLocalReply(query: string): {
   if (/^(who are you|your name)$/.test(q)) {
     return {
       reply:
-        "I'm Rachix Studio AI Assistant 🤖. I can help with website development, design and project enquiries.",
+        "I'm the Rachix Studio AI Assistant 🤖. I help visitors learn about our web design, UI/UX and development services.",
       options: false,
     };
   }
 
   if (
-    /price|pricing|cost|budget|charge|kitna|how much|rate/.test(q)
+    /price|pricing|cost|budget|charge|kitna|how much|rate/.test(
+      q
+    )
   ) {
     return {
       reply:
-        "Website pricing depends on design, features and project requirements. 💰 What type of website do you need?",
+        "Our website pricing depends on your business needs, design and features. 💰 What type of website are you looking for?",
       options: true,
+    };
+  }
+
+  if (
+    /about|rachix studio|your team|experience|who are you guys/.test(
+      q
+    )
+  ) {
+    return {
+      reply:
+        "Rachix Studio is a creative web design and development team with 1.5+ years of hands-on experience and 30+ completed projects. We specialize in UI/UX design, responsive websites, e-commerce and custom web solutions.",
+      options: false,
     };
   }
 
   if (/portfolio|personal website|resume website/.test(q)) {
     return {
       reply:
-        "Absolutely! 🚀 We create modern portfolio websites with project showcases, animations and contact forms.",
+        "Absolutely! 🚀 Our team creates modern portfolio websites with responsive layouts, smooth animations and professional designs.",
       options: false,
     };
   }
@@ -150,7 +169,7 @@ function getLocalReply(query: string): {
   if (/ecommerce|e-commerce|online store|shopping/.test(q)) {
     return {
       reply:
-        "Yes! 🛍️ We can build e-commerce websites with product listings, cart and checkout features. What products will you sell?",
+        "Yes! 🛍️ Rachix Studio develops e-commerce websites with product listings, shopping carts and checkout integrations. What kind of store would you like?",
       options: false,
     };
   }
@@ -158,7 +177,7 @@ function getLocalReply(query: string): {
   if (/restaurant|cafe|café|hotel|resort/.test(q)) {
     return {
       reply:
-        "Yes! 🍽️ We develop restaurant and hospitality websites with menus, galleries and booking enquiry features.",
+        "Yes! 🍽️ We build professional restaurant, café and hospitality websites with digital menus, galleries and enquiry features.",
       options: false,
     };
   }
@@ -166,7 +185,7 @@ function getLocalReply(query: string): {
   if (/seo|google ranking|search engine/.test(q)) {
     return {
       reply:
-        "We offer SEO-friendly website structure, metadata and performance optimization. Search rankings cannot be guaranteed.",
+        "Our team can build SEO-friendly websites with optimized structure, metadata and performance. Search rankings cannot be guaranteed.",
       options: false,
     };
   }
@@ -176,7 +195,7 @@ function getLocalReply(query: string): {
   ) {
     return {
       reply:
-        "We work with React.js, Next.js, TypeScript, JavaScript and Tailwind CSS to build responsive web applications. 🚀",
+        "Our development team works with React.js, Next.js, TypeScript, JavaScript and Tailwind CSS to create modern web experiences. 🚀",
       options: false,
     };
   }
@@ -184,15 +203,7 @@ function getLocalReply(query: string): {
   if (/timeline|delivery|days|weeks|deadline/.test(q)) {
     return {
       reply:
-        "Project delivery time depends on the number of pages and features. Share your requirements to discuss a timeline.",
-      options: false,
-    };
-  }
-
-  if (/about rachit|who is rachit|about rachix/.test(q)) {
-    return {
-      reply:
-        "Rachix Studio is a web design and development service founded by Rachit Rathore, a Frontend Developer and UI/UX Designer.",
+        "Website delivery timelines depend on the design, pages and features required. Our team can discuss a suitable timeline with you.",
       options: false,
     };
   }
@@ -200,14 +211,14 @@ function getLocalReply(query: string): {
   if (/website|web app|web development|business/.test(q)) {
     return {
       reply:
-        "Great! 💻 We develop modern, responsive websites and web applications. What type of website are you planning?",
+        "Great! 💻 Rachix Studio helps businesses establish a professional online presence through modern websites and web applications. What type of website do you need?",
       options: true,
     };
   }
 
   return {
     reply:
-      "Thanks for your message! 😊 Could you share a little more about your project? I'll help you with the next steps.",
+      "Thanks for reaching out! 😊 Tell us a little about your business and the website you need. Our team will be happy to help.",
     options: false,
   };
 }
@@ -215,18 +226,22 @@ function getLocalReply(query: string): {
 export default function About() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [inputVal, setInputVal] = useState("");
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     initialMessage,
   ]);
+
   const [isTyping, setIsTyping] = useState(false);
   const [showWebsiteOptions, setShowWebsiteOptions] =
     useState(false);
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
   const messagesRef = useRef<ChatMessage[]>([
     initialMessage,
   ]);
+
   const messageIdRef = useRef(1);
   const pendingRef = useRef(false);
   const requestRef = useRef<AbortController | null>(null);
@@ -237,10 +252,9 @@ export default function About() {
   const duration = reduce ? 0 : DURATION;
 
   const whatsappUrl = getWhatsAppUrl(
-    "Hello Rachix Studio! I visited your website and would like to discuss a web development project."
+    "Hello Rachix Studio! I would like to know more about your website services."
   );
 
-  // Safe lifecycle cleanup
   useEffect(() => {
     mountedRef.current = true;
 
@@ -250,7 +264,6 @@ export default function About() {
     };
   }, []);
 
-  // Smooth scrolling inside chat only
   useEffect(() => {
     if (!isChatOpen) return;
 
@@ -260,7 +273,7 @@ export default function About() {
 
       container.scrollTo({
         top: container.scrollHeight,
-        behavior: reduce ? "instant" : "smooth",
+        behavior: reduce ? "auto" : "smooth",
       });
     });
 
@@ -273,7 +286,6 @@ export default function About() {
     reduce,
   ]);
 
-  // Keyboard support
   useEffect(() => {
     if (!isChatOpen) return;
 
@@ -328,7 +340,7 @@ export default function About() {
       /^(hi|hii|hiii|hello|hey|hlo|hy|good morning|good evening|thank you|thanks|thx|thankyou|bye|goodbye|see you|who are you|your name)$/.test(
         normalized
       ) ||
-      /^(i need a website|website price|website price?)$/.test(
+      /^(i need a website|website price)$/.test(
         normalized
       );
 
@@ -336,6 +348,7 @@ export default function About() {
       if (mountedRef.current) {
         setShowWebsiteOptions(local.options);
       }
+
       return local.reply;
     }
 
@@ -414,14 +427,13 @@ export default function About() {
       text: query,
     });
 
-    // Contact enquiry
     if (isContactIntent(query)) {
       setShowWebsiteOptions(false);
 
       addMessages({
         sender: "bot",
         text:
-          "Of course! 😊 Let's connect on WhatsApp to discuss your project.",
+          "Of course! 😊 Connect with the Rachix Studio team on WhatsApp. We'd love to help your business grow online.",
       });
 
       openWhatsApp(
@@ -452,7 +464,7 @@ export default function About() {
     }
   };
 
-  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void sendMessage(inputVal);
   };
@@ -469,15 +481,16 @@ export default function About() {
         {
           sender: "bot",
           text:
-            "Let's connect on WhatsApp! 📱 Share your project requirements there.",
+            "Let's connect on WhatsApp! 📱 Our team is ready to help you take your business online.",
         }
       );
 
       setShowWebsiteOptions(false);
 
       openWhatsApp(
-        "Hello Rachix Studio! I would like to discuss a project."
+        "Hello Rachix Studio! I would like to know more about your website services."
       );
+
       return;
     }
 
@@ -494,14 +507,14 @@ export default function About() {
       },
       {
         sender: "bot",
-        text: `Great choice! 🚀 Let's discuss your ${type} project on WhatsApp.`,
+        text: `Great choice! 🚀 Our team can help you with a professional ${type} website. Let's connect on WhatsApp.`,
       }
     );
 
     setShowWebsiteOptions(false);
 
     openWhatsApp(
-      `Hello Rachix Studio! I want to build a ${type} website. Let's discuss the requirements.`
+      `Hello Rachix Studio! I'm interested in a ${type} website for my business.`
     );
   };
 
@@ -509,11 +522,17 @@ export default function About() {
     initial: reduce
       ? false
       : { opacity: 0, y },
-    whileInView: { opacity: 1, y: 0 },
+
+    whileInView: {
+      opacity: 1,
+      y: 0,
+    },
+
     viewport: {
       once: true,
       amount: 0.1,
     },
+
     transition: {
       duration,
       delay: reduce ? 0 : delay,
@@ -532,7 +551,7 @@ export default function About() {
         className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#F5C99F]/10 blur-3xl"
       />
 
-      {/* ABOUT CONTENT */}
+      {/* ABOUT RACHIX STUDIO */}
       <div className="relative z-10 min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <motion.span
@@ -540,7 +559,7 @@ export default function About() {
             className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#F5C99F] px-4 py-2 text-xs font-bold shadow-sm"
           >
             <Sparkles size={14} />
-            About Me
+            About Rachix Studio
           </motion.span>
 
           <motion.button
@@ -568,19 +587,30 @@ export default function About() {
 
         <motion.h2
           {...reveal(0.08)}
-          className="mt-6 wrap-break-word text-[clamp(1.5rem,3.5vw,2.4rem)] font-extrabold leading-tight tracking-tight"
+          className="mt-6 break-words text-[clamp(1.5rem,3.5vw,2.4rem)] font-extrabold leading-tight tracking-tight"
         >
-          Hi, I&apos;m Rachit Rathore 👋
+          Meet Rachix Studio 🚀
         </motion.h2>
 
         <motion.p
           {...reveal(0.12)}
           className="mt-4 max-w-xl text-sm leading-7 text-neutral-600 sm:mt-5 sm:text-base sm:leading-8"
         >
-          A Frontend Developer and UI/UX Designer who
-          loves building modern, scalable, and
-          user-friendly web experiences. I focus on
-          clean UI, performance, and real-world solutions
+          Rachix Studio is a creative web design and
+          development team helping businesses build a
+          strong digital presence. With{" "}
+          <span className="font-semibold text-[#111111]">
+            1.5+ years of hands-on experience
+          </span>{" "}
+          and{" "}
+          <span className="font-semibold text-[#111111]">
+            30+ successfully completed projects
+          </span>
+          , we specialize in modern UI/UX design,
+          responsive websites, e-commerce solutions
+          and custom web development. Our team combines
+          creativity, technology and user-focused design
+          to deliver professional digital experiences
           that help businesses grow online.
         </motion.p>
 
@@ -595,7 +625,7 @@ export default function About() {
                 <Check size={16} />
               </span>
 
-              <span className="min-w-0 wrap-break-word text-sm font-semibold leading-6 text-[#222222]">
+              <span className="min-w-0 break-words text-sm font-semibold leading-6 text-[#222222]">
                 {item}
               </span>
             </motion.li>
@@ -606,7 +636,7 @@ export default function About() {
       {/* CHAT AREA */}
       <motion.div
         {...reveal(0.12)}
-        className="relative z-10 mt-8 min-w-0 overflow-hidden rounded-2xl border border-[#F0D1B3] bg-linear-to-br from-[#FCE5D0] to-[#F5C99F] p-3 sm:p-5"
+        className="relative z-10 mt-8 min-w-0 overflow-hidden rounded-2xl border border-[#F0D1B3] bg-gradient-to-br from-[#FCE5D0] to-[#F5C99F] p-3 sm:p-5"
       >
         <div
           aria-hidden="true"
@@ -722,7 +752,7 @@ export default function About() {
                     }`}
                   >
                     <div
-                      className={`max-w-[90%] whitespace-pre-wrap wrap-break-word rounded-2xl px-3 py-2.5 text-xs leading-5 shadow-sm sm:max-w-[85%] ${
+                      className={`max-w-[90%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2.5 text-xs leading-5 shadow-sm sm:max-w-[85%] ${
                         message.sender === "user"
                           ? "rounded-br-sm bg-[#111111] text-white"
                           : "rounded-bl-sm border border-white/60 bg-white/90 text-[#222222]"
@@ -845,7 +875,7 @@ export default function About() {
 
               <p className="mt-3 text-center text-[10px] leading-5 text-neutral-600">
                 AI responses may contain mistakes.
-                Confirm project details directly.
+                Confirm important details with our team.
               </p>
             </motion.div>
           ) : (
@@ -874,8 +904,8 @@ export default function About() {
             >
               <div className="flex min-w-0 items-center gap-3">
                 <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-white/70 bg-[#111111] shadow-md sm:h-16 sm:w-16">
-                  <UserRound
-                    size={30}
+                  <Users
+                    size={28}
                     className="text-[#F5C99F]"
                   />
 
@@ -884,11 +914,12 @@ export default function About() {
 
                 <div className="min-w-0">
                   <h3 className="text-sm font-extrabold">
-                    Let&apos;s Build Together
+                    Let's Grow Your Business Online
                   </h3>
 
                   <p className="mt-1 text-xs leading-5 text-neutral-700">
-                    Have a project in mind? Let&apos;s talk.
+                    Connect with our team for professional
+                    web design and development services.
                   </p>
                 </div>
               </div>

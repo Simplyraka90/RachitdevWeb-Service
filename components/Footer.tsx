@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 const PHONE = "918576971890";
-const EMAIL = "rachitrathour98@gmail.com";
+const EMAIL = "rachixstudio@gmail.com";
 
 const ANIMATION_DURATION = 0.5;
 const ease = [0.22, 1, 0.36, 1] as const;
