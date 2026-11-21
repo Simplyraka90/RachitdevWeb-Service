@@ -914,7 +914,7 @@ export default function About() {
 
                 <div className="min-w-0">
                   <h3 className="text-sm font-extrabold">
-                    Let's Grow Your Business Online
+                    let Grow Your Business Online
                   </h3>
 
                   <p className="mt-1 text-xs leading-5 text-neutral-700">
